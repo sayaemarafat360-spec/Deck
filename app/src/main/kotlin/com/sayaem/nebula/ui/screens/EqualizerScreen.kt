@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
 import com.sayaem.nebula.MainViewModel
 import com.sayaem.nebula.ui.theme.*
+import com.sayaem.nebula.ui.theme.LocalAppColors
 
 
 
@@ -42,7 +43,7 @@ fun EqualizerScreen(
     val presets = MainViewModel.EQ_PRESETS.keys.toList()
     val freqLabels = listOf("60", "170", "310", "600", "1K", "3K", "6K", "12K", "14K", "16K")
 
-    Column(Modifier.fillMaxSize().background(DarkBg)) {
+    Column(Modifier.fillMaxSize().background(LocalAppColors.current.bg)) {
 
         // ── Top bar ──────────────────────────────────────────────────
         Row(
@@ -50,7 +51,7 @@ fun EqualizerScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) {
-                Icon(Icons.Filled.ArrowBack, null, tint = TextPrimaryDark)
+                Icon(Icons.Filled.ArrowBack, null, tint = LocalAppColors.current.textPrimary)
             }
             if (onSaveForSong != null && currentSongTitle != null) {
                 TextButton(onClick = onSaveForSong) {
@@ -60,7 +61,7 @@ fun EqualizerScreen(
                 }
             }
             Text("Equalizer", style = MaterialTheme.typography.headlineMedium,
-                color = TextPrimaryDark, fontWeight = FontWeight.Bold,
+                color = LocalAppColors.current.textPrimary, fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(1f).padding(start = 4.dp))
             Text(if (eqState.enabled) "ON" else "OFF",
                 style = MaterialTheme.typography.labelLarge,
@@ -73,7 +74,7 @@ fun EqualizerScreen(
                     checkedThumbColor = Color.White,
                     checkedTrackColor = NebulaViolet,
                     uncheckedThumbColor = Color.White,
-                    uncheckedTrackColor = DarkBorder,
+                    uncheckedTrackColor = LocalAppColors.current.border,
                 )
             )
         }
@@ -88,8 +89,8 @@ fun EqualizerScreen(
                 val selected = eqState.preset == p
                 Box(
                     Modifier.clip(RoundedCornerShape(20.dp))
-                        .background(if (selected) NebulaViolet else DarkCard)
-                        .border(0.5.dp, if (selected) NebulaViolet else DarkBorder, RoundedCornerShape(20.dp))
+                        .background(if (selected) NebulaViolet else LocalAppColors.current.card)
+                        .border(0.5.dp, if (selected) NebulaViolet else LocalAppColors.current.border, RoundedCornerShape(20.dp))
                         .clickable { onPresetChanged(p) }
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
@@ -112,7 +113,7 @@ fun EqualizerScreen(
             ) {
                 listOf("+12", "+6", "0", "-6", "-12").forEach { label ->
                     Text(label, style = MaterialTheme.typography.labelSmall,
-                        color = TextTertiaryDark, modifier = Modifier.padding(bottom = 0.dp))
+                        color = LocalAppColors.current.textTertiary, modifier = Modifier.padding(bottom = 0.dp))
                 }
             }
 
@@ -138,7 +139,7 @@ fun EqualizerScreen(
         Column(Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Bass Boost", style = MaterialTheme.typography.bodyMedium,
-                    color = TextPrimaryDark, fontWeight = FontWeight.SemiBold)
+                    color = LocalAppColors.current.textPrimary, fontWeight = FontWeight.SemiBold)
                 Text("${(eqState.bassBoost * 100).toInt()}%",
                     style = MaterialTheme.typography.bodyMedium, color = NebulaViolet)
             }
@@ -150,7 +151,7 @@ fun EqualizerScreen(
                 colors = SliderDefaults.colors(
                     activeTrackColor = NebulaViolet,
                     thumbColor = Color.White,
-                    inactiveTrackColor = DarkBorder,
+                    inactiveTrackColor = LocalAppColors.current.border,
                 )
             )
         }
@@ -205,7 +206,7 @@ private fun EqBand(
 
                 // Track background
                 drawRoundRect(
-                    color  = DarkBorder,
+                    color  = LocalAppColors.current.border,
                     topLeft = Offset(trackX, 0f),
                     size   = Size(trackW, size.height),
                     cornerRadius = CornerRadius(trackW / 2)
@@ -240,6 +241,6 @@ private fun EqBand(
 
         // Frequency label
         Text(label, style = MaterialTheme.typography.labelSmall,
-            color = TextTertiaryDark, modifier = Modifier.height(16.dp))
+            color = LocalAppColors.current.textTertiary, modifier = Modifier.height(16.dp))
     }
 }

@@ -16,6 +16,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
 import com.sayaem.nebula.ui.theme.*
+import com.sayaem.nebula.ui.theme.LocalAppColors
 
 
 
@@ -50,20 +51,20 @@ fun SleepTimerSheet(
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
                 .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
-                .background(DarkBgSecondary)
+                .background(LocalAppColors.current.bgSecondary)
                 .clickable(enabled = false) {}
                 .padding(horizontal = 20.dp, vertical = 24.dp)
                 .navigationBarsPadding()
         ) {
             // Handle
             Box(Modifier.width(36.dp).height(4.dp).clip(RoundedCornerShape(2.dp))
-                .background(DarkBorder).align(Alignment.CenterHorizontally))
+                .background(LocalAppColors.current.border).align(Alignment.CenterHorizontally))
             Spacer(Modifier.height(20.dp))
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically) {
                 Text("Sleep Timer", style = MaterialTheme.typography.headlineSmall,
-                    color = TextPrimaryDark, fontWeight = FontWeight.Bold)
+                    color = LocalAppColors.current.textPrimary, fontWeight = FontWeight.Bold)
                 Icon(Icons.Filled.Bedtime, null, tint = NebulaCyan, modifier = Modifier.size(24.dp))
             }
 
@@ -80,7 +81,7 @@ fun SleepTimerSheet(
                     Column(horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.fillMaxWidth()) {
                         Text("Time remaining", style = MaterialTheme.typography.labelMedium,
-                            color = TextSecondaryDark)
+                            color = LocalAppColors.current.textSecondary)
                         Spacer(Modifier.height(8.dp))
                         Text(state.remainingFormatted,
                             style = MaterialTheme.typography.displayMedium,
@@ -90,7 +91,7 @@ fun SleepTimerSheet(
                             progress = { state.progress },
                             modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
                             color = NebulaCyan,
-                            trackColor = DarkBorder,
+                            trackColor = LocalAppColors.current.border,
                         )
                         Spacer(Modifier.height(16.dp))
                         OutlinedButton(
@@ -108,7 +109,7 @@ fun SleepTimerSheet(
             } else {
                 // Custom time input
                 Text("Custom time (minutes)", style = MaterialTheme.typography.labelMedium,
-                    color = TextSecondaryDark)
+                    color = LocalAppColors.current.textSecondary)
                 Spacer(Modifier.height(8.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically) {
@@ -116,14 +117,14 @@ fun SleepTimerSheet(
                         value = customText,
                         onValueChange = { if (it.length <= 3 && it.all { c -> c.isDigit() }) { customText = it; selectedPreset = -1 } },
                         modifier = Modifier.weight(1f),
-                        placeholder = { Text("e.g. 45", color = TextTertiaryDark) },
+                        placeholder = { Text("e.g. 45", color = LocalAppColors.current.textTertiary) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor   = TextPrimaryDark,
-                            unfocusedTextColor = TextPrimaryDark,
+                            focusedTextColor   = LocalAppColors.current.textPrimary,
+                            unfocusedTextColor = LocalAppColors.current.textPrimary,
                             focusedBorderColor = NebulaViolet,
-                            unfocusedBorderColor = DarkBorder,
+                            unfocusedBorderColor = LocalAppColors.current.border,
                         )
                     )
                     Button(
@@ -143,7 +144,7 @@ fun SleepTimerSheet(
 
                 // Preset grid
                 Text("Quick presets", style = MaterialTheme.typography.labelMedium,
-                    color = TextSecondaryDark)
+                    color = LocalAppColors.current.textSecondary)
                 Spacer(Modifier.height(10.dp))
                 val rows = presets.chunked(4)
                 rows.forEach { row ->
@@ -153,8 +154,8 @@ fun SleepTimerSheet(
                             Box(
                                 Modifier.weight(1f).height(48.dp)
                                     .clip(RoundedCornerShape(14.dp))
-                                    .background(if (sel) NebulaViolet else DarkCard)
-                                    .border(0.5.dp, if (sel) NebulaViolet else DarkBorder, RoundedCornerShape(14.dp))
+                                    .background(if (sel) NebulaViolet else LocalAppColors.current.card)
+                                    .border(0.5.dp, if (sel) NebulaViolet else LocalAppColors.current.border, RoundedCornerShape(14.dp))
                                     .clickable {
                                         selectedPreset = mins
                                         customText = ""
@@ -193,19 +194,19 @@ fun SpeedPickerSheet(
         Column(
             Modifier.fillMaxWidth().align(Alignment.BottomCenter)
                 .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
-                .background(DarkBgSecondary)
+                .background(LocalAppColors.current.bgSecondary)
                 .clickable(enabled = false) {}
                 .padding(horizontal = 20.dp, vertical = 24.dp)
                 .navigationBarsPadding()
         ) {
             Box(Modifier.width(36.dp).height(4.dp).clip(RoundedCornerShape(2.dp))
-                .background(DarkBorder).align(Alignment.CenterHorizontally))
+                .background(LocalAppColors.current.border).align(Alignment.CenterHorizontally))
             Spacer(Modifier.height(20.dp))
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically) {
                 Text("Playback Speed", style = MaterialTheme.typography.headlineSmall,
-                    color = TextPrimaryDark, fontWeight = FontWeight.Bold)
+                    color = LocalAppColors.current.textPrimary, fontWeight = FontWeight.Bold)
                 Text("${current}×", style = MaterialTheme.typography.titleLarge,
                     color = NebulaViolet, fontWeight = FontWeight.Bold)
             }
@@ -218,8 +219,8 @@ fun SpeedPickerSheet(
                     Box(
                         Modifier.weight(1f).height(52.dp)
                             .clip(RoundedCornerShape(14.dp))
-                            .background(if (sel) NebulaViolet else DarkCard)
-                            .border(0.5.dp, if (sel) NebulaViolet else DarkBorder, RoundedCornerShape(14.dp))
+                            .background(if (sel) NebulaViolet else LocalAppColors.current.card)
+                            .border(0.5.dp, if (sel) NebulaViolet else LocalAppColors.current.border, RoundedCornerShape(14.dp))
                             .clickable { onSelect(s); onDismiss() },
                         contentAlignment = Alignment.Center
                     ) {

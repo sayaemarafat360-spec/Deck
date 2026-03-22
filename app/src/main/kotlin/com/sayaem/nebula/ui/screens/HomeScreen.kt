@@ -22,6 +22,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.sayaem.nebula.data.models.Song
 import com.sayaem.nebula.ui.theme.*
+import com.sayaem.nebula.ui.theme.LocalAppColors
 import com.sayaem.nebula.ui.components.AdMobBanner
 import java.util.Calendar
 
@@ -60,9 +61,9 @@ fun HomeScreen(
             ) {
                 Column {
                     Text(greeting, style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondaryDark)
+                        color = LocalAppColors.current.textSecondary)
                     Text("Deck", style = MaterialTheme.typography.displaySmall,
-                        color = TextPrimaryDark, fontWeight = FontWeight.Bold)
+                        color = LocalAppColors.current.textPrimary, fontWeight = FontWeight.Bold)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     IconBox(Icons.Filled.BarChart, NebulaViolet, onClick = onStatsClick)
@@ -210,10 +211,10 @@ private fun SectionHeader(
             Icon(icon, null, tint = color, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
             Text(title, style = MaterialTheme.typography.headlineSmall,
-                color = TextPrimaryDark, fontWeight = FontWeight.Bold)
+                color = LocalAppColors.current.textPrimary, fontWeight = FontWeight.Bold)
         }
         if (badge != null) {
-            Text(badge, style = MaterialTheme.typography.labelSmall, color = TextTertiaryDark)
+            Text(badge, style = MaterialTheme.typography.labelSmall, color = LocalAppColors.current.textTertiary)
         }
     }
 }
@@ -308,7 +309,7 @@ private fun VideoCard(
             Modifier.width(180.dp).height(104.dp)
                 .clip(RoundedCornerShape(14.dp))
                 .background(Color(0xFF180A0A))
-                .border(0.5.dp, DarkBorder, RoundedCornerShape(14.dp))
+                .border(0.5.dp, LocalAppColors.current.border, RoundedCornerShape(14.dp))
                 .clickable(onClick = onClick)
         ) {
             // Gradient bg
@@ -337,17 +338,17 @@ private fun VideoCard(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(video.title, style = MaterialTheme.typography.labelMedium,
-                    color = TextPrimaryDark, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    color = LocalAppColors.current.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     fontWeight = FontWeight.SemiBold)
                 Text(video.sizeFormatted, style = MaterialTheme.typography.labelSmall,
-                    color = TextTertiaryDark)
+                    color = LocalAppColors.current.textTertiary)
             }
             Box(
                 Modifier.size(24.dp).clip(RoundedCornerShape(6.dp))
                     .clickable(onClick = onMoreClick),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Filled.MoreVert, null, tint = TextTertiaryDark,
+                Icon(Icons.Filled.MoreVert, null, tint = LocalAppColors.current.textTertiary,
                     modifier = Modifier.size(14.dp))
             }
         }
@@ -401,9 +402,9 @@ private fun AlbumCard(
             }
         }
         Spacer(Modifier.height(6.dp))
-        Text(song.title, style = MaterialTheme.typography.labelMedium, color = TextPrimaryDark,
+        Text(song.title, style = MaterialTheme.typography.labelMedium, color = LocalAppColors.current.textPrimary,
             maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(song.artist, style = MaterialTheme.typography.labelSmall, color = TextTertiaryDark,
+        Text(song.artist, style = MaterialTheme.typography.labelSmall, color = LocalAppColors.current.textTertiary,
             maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
@@ -441,17 +442,17 @@ private fun SongRow(
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
             Text(song.title, style = MaterialTheme.typography.titleSmall,
-                color = TextPrimaryDark, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                color = LocalAppColors.current.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis,
                 fontWeight = FontWeight.SemiBold)
             Text(song.artist, style = MaterialTheme.typography.bodySmall,
-                color = TextTertiaryDark, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                color = LocalAppColors.current.textTertiary, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        Text(song.durationFormatted, style = MaterialTheme.typography.labelSmall, color = TextTertiaryDark)
+        Text(song.durationFormatted, style = MaterialTheme.typography.labelSmall, color = LocalAppColors.current.textTertiary)
         IconButton(onClick = onMoreClick, modifier = Modifier.size(34.dp)) {
-            Icon(Icons.Filled.MoreVert, null, tint = TextTertiaryDark, modifier = Modifier.size(17.dp))
+            Icon(Icons.Filled.MoreVert, null, tint = LocalAppColors.current.textTertiary, modifier = Modifier.size(17.dp))
         }
     }
-    HorizontalDivider(Modifier.padding(start = 82.dp), color = DarkBorderSubtle, thickness = 0.5.dp)
+    HorizontalDivider(Modifier.padding(start = 82.dp), color = LocalAppColors.current.borderSubtle, thickness = 0.5.dp)
 }
 
 // ── Stat pill ────────────────────────────────────────────────────────────
@@ -472,8 +473,8 @@ private fun StatPill(
         Icon(icon, null, tint = color, modifier = Modifier.size(14.dp))
         Spacer(Modifier.width(5.dp))
         Text(value, style = MaterialTheme.typography.labelLarge,
-            color = TextPrimaryDark, fontWeight = FontWeight.Bold)
+            color = LocalAppColors.current.textPrimary, fontWeight = FontWeight.Bold)
         Spacer(Modifier.width(4.dp))
-        Text(label, style = MaterialTheme.typography.labelSmall, color = TextTertiaryDark)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = LocalAppColors.current.textTertiary)
     }
 }

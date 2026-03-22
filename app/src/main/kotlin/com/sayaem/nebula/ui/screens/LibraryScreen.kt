@@ -20,6 +20,7 @@ import com.sayaem.nebula.data.models.Song
 import com.sayaem.nebula.ui.components.SongTile
 import com.sayaem.nebula.ui.components.SwipeableSongTile
 import com.sayaem.nebula.ui.theme.*
+import com.sayaem.nebula.ui.theme.LocalAppColors
 
 
 
@@ -58,7 +59,7 @@ fun LibraryScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
             Text("Library", style = MaterialTheme.typography.displaySmall,
-                color = TextPrimaryDark, fontWeight = FontWeight.Bold)
+                color = LocalAppColors.current.textPrimary, fontWeight = FontWeight.Bold)
         }
 
         // Tab row
@@ -73,7 +74,7 @@ fun LibraryScreen(
                     })
             }
         }
-        HorizontalDivider(color = DarkBorder, thickness = 0.5.dp)
+        HorizontalDivider(color = LocalAppColors.current.border, thickness = 0.5.dp)
 
         when (selectedTab) {
             0 -> SongsTab(songs, currentSong, isPlaying, onSongClick, onMoreClick, onPlayNext, onAddToQueue)
@@ -120,7 +121,7 @@ private fun SongsTab(songs: List<Song>, current: Song?, isPlaying: Boolean, onSo
                         onMoreClick  = { onMoreClick(song) },
                         onPlayNext   = { onPlayNext(song) },
                         onAddToQueue = { onAddToQueue(song) })
-                    HorizontalDivider(Modifier.padding(start = 84.dp), color = DarkBorderSubtle, thickness = 0.5.dp)
+                    HorizontalDivider(Modifier.padding(start = 84.dp), color = LocalAppColors.current.borderSubtle, thickness = 0.5.dp)
                 }
             }
         }
@@ -137,7 +138,7 @@ private fun VideosTab(videos: List<Song>, onVideoClick: (Song) -> Unit, onMoreCl
         } else {
             items(videos, key = { it.id }) { video ->
                 Row(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
-                    .background(DarkCard).border(0.5.dp, DarkBorder, RoundedCornerShape(14.dp))
+                    .background(LocalAppColors.current.card).border(0.5.dp, LocalAppColors.current.border, RoundedCornerShape(14.dp))
                     .clickable { onVideoClick(video) }.height(88.dp),
                     verticalAlignment = Alignment.CenterVertically) {
                     Box(modifier = Modifier.width(130.dp).fillMaxHeight()
@@ -153,13 +154,13 @@ private fun VideosTab(videos: List<Song>, onVideoClick: (Song) -> Unit, onMoreCl
                     }
                     Column(Modifier.padding(start = 14.dp, top = 14.dp, bottom = 14.dp).weight(1f)) {
                         Text(video.title, style = MaterialTheme.typography.titleSmall,
-                            color = TextPrimaryDark, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                            color = LocalAppColors.current.textPrimary, maxLines = 2, overflow = TextOverflow.Ellipsis,
                             fontWeight = FontWeight.SemiBold)
                         Spacer(Modifier.height(4.dp))
-                        Text(video.sizeFormatted, style = MaterialTheme.typography.bodySmall, color = TextTertiaryDark)
+                        Text(video.sizeFormatted, style = MaterialTheme.typography.bodySmall, color = LocalAppColors.current.textTertiary)
                     }
                     IconButton(onClick = { onMoreClick(video) }, modifier = Modifier.size(40.dp)) {
-                        Icon(Icons.Filled.MoreVert, null, tint = TextTertiaryDark, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Filled.MoreVert, null, tint = LocalAppColors.current.textTertiary, modifier = Modifier.size(18.dp))
                     }
                 }
             }
@@ -178,8 +179,8 @@ private fun AlbumsTab(songs: List<Song>, onSongClick: (Song) -> Unit) {
         verticalArrangement   = Arrangement.spacedBy(12.dp)) {
         itemsIndexed(albums) { i, (album, albumSongs) ->
             val color = colors[i % colors.size]
-            Column(modifier = Modifier.clip(RoundedCornerShape(16.dp)).background(DarkCard)
-                .border(0.5.dp, DarkBorder, RoundedCornerShape(16.dp))
+            Column(modifier = Modifier.clip(RoundedCornerShape(16.dp)).background(LocalAppColors.current.card)
+                .border(0.5.dp, LocalAppColors.current.border, RoundedCornerShape(16.dp))
                 .clickable { albumSongs.firstOrNull()?.let { onSongClick(it) } }) {
                 Box(modifier = Modifier.fillMaxWidth().aspectRatio(1f)
                     .clip(RoundedCornerShape(topStart = 15.dp, topEnd = 15.dp))
@@ -200,9 +201,9 @@ private fun AlbumsTab(songs: List<Song>, onSongClick: (Song) -> Unit) {
                 }
                 Column(Modifier.padding(12.dp)) {
                     Text(album, style = MaterialTheme.typography.titleSmall,
-                        color = TextPrimaryDark, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        color = LocalAppColors.current.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         fontWeight = FontWeight.SemiBold)
-                    Text("${albumSongs.size} songs", style = MaterialTheme.typography.bodySmall, color = TextTertiaryDark)
+                    Text("${albumSongs.size} songs", style = MaterialTheme.typography.bodySmall, color = LocalAppColors.current.textTertiary)
                 }
             }
         }
@@ -238,13 +239,13 @@ private fun ArtistsTab(songs: List<Song>, onSongClick: (Song) -> Unit) {
                 }
                 Spacer(Modifier.width(14.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(artist, style = MaterialTheme.typography.titleMedium, color = TextPrimaryDark,
+                    Text(artist, style = MaterialTheme.typography.titleMedium, color = LocalAppColors.current.textPrimary,
                         maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text("${artistSongs.size} songs", style = MaterialTheme.typography.bodySmall, color = TextTertiaryDark)
+                    Text("${artistSongs.size} songs", style = MaterialTheme.typography.bodySmall, color = LocalAppColors.current.textTertiary)
                 }
-                Icon(Icons.Filled.ChevronRight, null, tint = TextTertiaryDark, modifier = Modifier.size(18.dp))
+                Icon(Icons.Filled.ChevronRight, null, tint = LocalAppColors.current.textTertiary, modifier = Modifier.size(18.dp))
             }
-            HorizontalDivider(Modifier.padding(start = 86.dp), color = DarkBorderSubtle, thickness = 0.5.dp)
+            HorizontalDivider(Modifier.padding(start = 86.dp), color = LocalAppColors.current.borderSubtle, thickness = 0.5.dp)
         }
     }
 }
@@ -284,7 +285,7 @@ private fun PlaylistsTab(
                 Text("New Playlist", style = MaterialTheme.typography.titleMedium,
                     color = NebulaViolet, fontWeight = FontWeight.SemiBold)
             }
-            HorizontalDivider(color = DarkBorderSubtle, thickness = 0.5.dp)
+            HorizontalDivider(color = LocalAppColors.current.borderSubtle, thickness = 0.5.dp)
         }
 
         if (playlists.isEmpty()) {
@@ -304,8 +305,8 @@ private fun PlaylistsTab(
                         Spacer(Modifier.width(14.dp))
                         Column(Modifier.weight(1f)) {
                             Text(pl.name, style = MaterialTheme.typography.titleMedium,
-                                color = TextPrimaryDark, fontWeight = FontWeight.SemiBold)
-                            Text("${pl.songCount} songs", style = MaterialTheme.typography.bodySmall, color = TextTertiaryDark)
+                                color = LocalAppColors.current.textPrimary, fontWeight = FontWeight.SemiBold)
+                            Text("${pl.songCount} songs", style = MaterialTheme.typography.bodySmall, color = LocalAppColors.current.textTertiary)
                         }
                         // Play button
                         if (pl.songCount > 0) {
@@ -317,13 +318,13 @@ private fun PlaylistsTab(
                         var showMenu by remember { mutableStateOf(false) }
                         Box {
                             IconButton(onClick = { showMenu = true }) {
-                                Icon(Icons.Filled.MoreVert, null, tint = TextTertiaryDark)
+                                Icon(Icons.Filled.MoreVert, null, tint = LocalAppColors.current.textTertiary)
                             }
                             DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                                DropdownMenuItem(text = { Text("Add songs", color = TextPrimaryDark) },
+                                DropdownMenuItem(text = { Text("Add songs", color = LocalAppColors.current.textPrimary) },
                                     onClick = { addingSongTo = pl.id; showMenu = false },
                                     leadingIcon = { Icon(Icons.Filled.Add, null, tint = NebulaViolet) })
-                                DropdownMenuItem(text = { Text("Rename", color = TextPrimaryDark) },
+                                DropdownMenuItem(text = { Text("Rename", color = LocalAppColors.current.textPrimary) },
                                     onClick = { renamingId = pl.id; renameText = pl.name; showMenu = false },
                                     leadingIcon = { Icon(Icons.Filled.Edit, null, tint = NebulaCyan) })
                                 DropdownMenuItem(text = { Text("Delete", color = NebulaRed) },
@@ -340,7 +341,7 @@ private fun PlaylistsTab(
                         if (plSongs.isEmpty()) {
                             Box(Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 84.dp)) {
                                 Text("No songs yet — tap ⋮ to add",
-                                    style = MaterialTheme.typography.bodySmall, color = TextTertiaryDark)
+                                    style = MaterialTheme.typography.bodySmall, color = LocalAppColors.current.textTertiary)
                             }
                         } else {
                             plSongs.forEachIndexed { idx, song ->
@@ -348,12 +349,12 @@ private fun PlaylistsTab(
                                     .padding(start = 84.dp, end = 20.dp, top = 6.dp, bottom = 6.dp),
                                     verticalAlignment = Alignment.CenterVertically) {
                                     // Drag handle
-                                    Icon(Icons.Filled.DragHandle, null, tint = TextTertiaryDark,
+                                    Icon(Icons.Filled.DragHandle, null, tint = LocalAppColors.current.textTertiary,
                                         modifier = Modifier.size(18.dp).padding(end = 4.dp))
                                     Column(Modifier.weight(1f)) {
                                         Text(song.title, style = MaterialTheme.typography.bodyMedium,
-                                            color = TextPrimaryDark, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                        Text(song.artist, style = MaterialTheme.typography.bodySmall, color = TextTertiaryDark)
+                                            color = LocalAppColors.current.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        Text(song.artist, style = MaterialTheme.typography.bodySmall, color = LocalAppColors.current.textTertiary)
                                     }
                                     // Move up
                                     if (idx > 0) {
@@ -362,7 +363,7 @@ private fun PlaylistsTab(
                                             ids.add(idx - 1, ids.removeAt(idx))
                                             onReorderPlaylist(pl.id, ids)
                                         }, modifier = Modifier.size(28.dp)) {
-                                            Icon(Icons.Filled.KeyboardArrowUp, null, tint = TextTertiaryDark, modifier = Modifier.size(16.dp))
+                                            Icon(Icons.Filled.KeyboardArrowUp, null, tint = LocalAppColors.current.textTertiary, modifier = Modifier.size(16.dp))
                                         }
                                     }
                                     // Move down
@@ -372,7 +373,7 @@ private fun PlaylistsTab(
                                             ids.add(idx + 1, ids.removeAt(idx))
                                             onReorderPlaylist(pl.id, ids)
                                         }, modifier = Modifier.size(28.dp)) {
-                                            Icon(Icons.Filled.KeyboardArrowDown, null, tint = TextTertiaryDark, modifier = Modifier.size(16.dp))
+                                            Icon(Icons.Filled.KeyboardArrowDown, null, tint = LocalAppColors.current.textTertiary, modifier = Modifier.size(16.dp))
                                         }
                                     }
                                     IconButton(onClick = { onRemove(pl.id, song.id) }, modifier = Modifier.size(28.dp)) {
@@ -381,10 +382,10 @@ private fun PlaylistsTab(
                                 }
                             }
                         }
-                        HorizontalDivider(color = DarkBorderSubtle, thickness = 0.5.dp)
+                        HorizontalDivider(color = LocalAppColors.current.borderSubtle, thickness = 0.5.dp)
                     }
                 }
-                HorizontalDivider(color = DarkBorderSubtle, thickness = 0.5.dp)
+                HorizontalDivider(color = LocalAppColors.current.borderSubtle, thickness = 0.5.dp)
             }
         }
     }
@@ -394,14 +395,14 @@ private fun PlaylistsTab(
         AlertDialog(
             onDismissRequest = { showCreateDialog = false; newPlaylistName = "" },
             tonalElevation = 0.dp,
-            title = { Text("New Playlist", color = TextPrimaryDark, fontWeight = FontWeight.Bold) },
+            title = { Text("New Playlist", color = LocalAppColors.current.textPrimary, fontWeight = FontWeight.Bold) },
             text = {
                 OutlinedTextField(value = newPlaylistName, onValueChange = { newPlaylistName = it },
-                    placeholder = { Text("Playlist name", color = TextTertiaryDark) },
+                    placeholder = { Text("Playlist name", color = LocalAppColors.current.textTertiary) },
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = TextPrimaryDark, unfocusedTextColor = TextPrimaryDark,
-                        focusedBorderColor = NebulaViolet, unfocusedBorderColor = DarkBorder))
+                        focusedTextColor = LocalAppColors.current.textPrimary, unfocusedTextColor = LocalAppColors.current.textPrimary,
+                        focusedBorderColor = NebulaViolet, unfocusedBorderColor = LocalAppColors.current.border))
             },
             confirmButton = {
                 TextButton(onClick = {
@@ -411,7 +412,7 @@ private fun PlaylistsTab(
             },
             dismissButton = {
                 TextButton(onClick = { showCreateDialog = false; newPlaylistName = "" }) {
-                    Text("Cancel", color = TextSecondaryDark)
+                    Text("Cancel", color = LocalAppColors.current.textSecondary)
                 }
             }
         )
@@ -422,12 +423,12 @@ private fun PlaylistsTab(
         AlertDialog(
             onDismissRequest = { renamingId = null },
             tonalElevation = 0.dp,
-            title = { Text("Rename Playlist", color = TextPrimaryDark, fontWeight = FontWeight.Bold) },
+            title = { Text("Rename Playlist", color = LocalAppColors.current.textPrimary, fontWeight = FontWeight.Bold) },
             text = {
                 OutlinedTextField(value = renameText, onValueChange = { renameText = it }, singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = TextPrimaryDark, unfocusedTextColor = TextPrimaryDark,
-                        focusedBorderColor = NebulaViolet, unfocusedBorderColor = DarkBorder))
+                        focusedTextColor = LocalAppColors.current.textPrimary, unfocusedTextColor = LocalAppColors.current.textPrimary,
+                        focusedBorderColor = NebulaViolet, unfocusedBorderColor = LocalAppColors.current.border))
             },
             confirmButton = {
                 TextButton(onClick = {
@@ -436,7 +437,7 @@ private fun PlaylistsTab(
                 }) { Text("Save", color = NebulaViolet, fontWeight = FontWeight.Bold) }
             },
             dismissButton = {
-                TextButton(onClick = { renamingId = null }) { Text("Cancel", color = TextSecondaryDark) }
+                TextButton(onClick = { renamingId = null }) { Text("Cancel", color = LocalAppColors.current.textSecondary) }
             }
         )
     }
@@ -446,7 +447,7 @@ private fun PlaylistsTab(
         AlertDialog(
             onDismissRequest = { addingSongTo = null },
             tonalElevation = 0.dp,
-            title = { Text("Add Songs", color = TextPrimaryDark, fontWeight = FontWeight.Bold) },
+            title = { Text("Add Songs", color = LocalAppColors.current.textPrimary, fontWeight = FontWeight.Bold) },
             text = {
                 val pl = playlists.find { it.id == pid }
                 LazyColumn(Modifier.fillMaxWidth().heightIn(max = 300.dp)) {
@@ -457,9 +458,9 @@ private fun PlaylistsTab(
                             Icon(Icons.Filled.Add, null, tint = NebulaViolet, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(10.dp))
                             Column(Modifier.weight(1f)) {
-                                Text(song.title, style = MaterialTheme.typography.bodyMedium, color = TextPrimaryDark,
+                                Text(song.title, style = MaterialTheme.typography.bodyMedium, color = LocalAppColors.current.textPrimary,
                                     maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                Text(song.artist, style = MaterialTheme.typography.bodySmall, color = TextTertiaryDark)
+                                Text(song.artist, style = MaterialTheme.typography.bodySmall, color = LocalAppColors.current.textTertiary)
                             }
                         }
                     }
@@ -515,11 +516,11 @@ private fun FoldersTab(folders: Map<String, List<Song>>, onSongClick: (Song) -> 
                             Spacer(Modifier.width(14.dp))
                             Column(Modifier.weight(1f)) {
                                 Text(folder, style = MaterialTheme.typography.titleMedium,
-                                    color = TextPrimaryDark, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                Text("${folderSongs.size} files", style = MaterialTheme.typography.bodySmall, color = TextTertiaryDark)
+                                    color = LocalAppColors.current.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text("${folderSongs.size} files", style = MaterialTheme.typography.bodySmall, color = LocalAppColors.current.textTertiary)
                             }
                             Icon(if (isExpanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
-                                null, tint = TextTertiaryDark, modifier = Modifier.size(20.dp))
+                                null, tint = LocalAppColors.current.textTertiary, modifier = Modifier.size(20.dp))
                         }
 
                         if (isExpanded) {
@@ -533,14 +534,14 @@ private fun FoldersTab(folders: Map<String, List<Song>>, onSongClick: (Song) -> 
                                     Spacer(Modifier.width(10.dp))
                                     Column(Modifier.weight(1f)) {
                                         Text(song.title, style = MaterialTheme.typography.bodyMedium,
-                                            color = TextPrimaryDark, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                        Text(song.durationFormatted, style = MaterialTheme.typography.bodySmall, color = TextTertiaryDark)
+                                            color = LocalAppColors.current.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        Text(song.durationFormatted, style = MaterialTheme.typography.bodySmall, color = LocalAppColors.current.textTertiary)
                                     }
                                 }
                             }
-                            HorizontalDivider(color = DarkBorderSubtle, thickness = 0.5.dp)
+                            HorizontalDivider(color = LocalAppColors.current.borderSubtle, thickness = 0.5.dp)
                         }
-                        HorizontalDivider(color = DarkBorderSubtle, thickness = 0.5.dp)
+                        HorizontalDivider(color = LocalAppColors.current.borderSubtle, thickness = 0.5.dp)
                     }
                 }
             }
@@ -554,7 +555,7 @@ private fun SortChip(label: String, selected: Boolean, onClick: () -> Unit) {
     Box(modifier = Modifier.clip(RoundedCornerShape(17.dp))
         .background(if (selected) NebulaViolet.copy(0.15f) else Color.Transparent)
         .border(if (selected) 1.dp else 0.5.dp,
-            if (selected) NebulaViolet.copy(0.5f) else DarkBorder, RoundedCornerShape(17.dp))
+            if (selected) NebulaViolet.copy(0.5f) else LocalAppColors.current.border, RoundedCornerShape(17.dp))
         .clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 7.dp)) {
         Text(label, style = MaterialTheme.typography.labelSmall,
             color = if (selected) NebulaViolet else TextSecondaryDark)
@@ -565,11 +566,11 @@ private fun SortChip(label: String, selected: Boolean, onClick: () -> Unit) {
 fun EmptyState(title: String, subtitle: String) {
     Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(Icons.Filled.LibraryMusic, null, tint = TextTertiaryDark, modifier = Modifier.size(56.dp))
+            Icon(Icons.Filled.LibraryMusic, null, tint = LocalAppColors.current.textTertiary, modifier = Modifier.size(56.dp))
             Spacer(Modifier.height(16.dp))
-            Text(title, style = MaterialTheme.typography.headlineSmall, color = TextTertiaryDark)
+            Text(title, style = MaterialTheme.typography.headlineSmall, color = LocalAppColors.current.textTertiary)
             Spacer(Modifier.height(8.dp))
-            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = TextTertiaryDark)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = LocalAppColors.current.textTertiary)
         }
     }
 }

@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.*
 import com.sayaem.nebula.data.models.Song
 import com.sayaem.nebula.ui.components.StatCard
 import com.sayaem.nebula.ui.theme.*
+import com.sayaem.nebula.ui.theme.LocalAppColors
 
 
 
@@ -46,11 +47,11 @@ fun PremiumScreen(
         Triple("Cloud Playlist Backup",   Icons.Filled.CloudUpload,  NebulaAmber),
     )
 
-    Column(Modifier.fillMaxSize().background(DarkBg).verticalScroll(rememberScrollState())) {
+    Column(Modifier.fillMaxSize().background(LocalAppColors.current.bg).verticalScroll(rememberScrollState())) {
         Row(Modifier.fillMaxWidth().padding(start = 8.dp, top = 52.dp),
             verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
-                Icon(Icons.Filled.Close, null, tint = TextPrimaryDark)
+                Icon(Icons.Filled.Close, null, tint = LocalAppColors.current.textPrimary)
             }
         }
 
@@ -67,7 +68,7 @@ fun PremiumScreen(
                         Text("You have Deck Premium", style = MaterialTheme.typography.titleSmall,
                             color = NebulaGreen, fontWeight = FontWeight.Bold)
                         Text("Plan: ${premiumPlan.replaceFirstChar { it.uppercase() }}",
-                            style = MaterialTheme.typography.bodySmall, color = TextSecondaryDark)
+                            style = MaterialTheme.typography.bodySmall, color = LocalAppColors.current.textSecondary)
                     }
                 }
             }
@@ -77,10 +78,10 @@ fun PremiumScreen(
             Icon(Icons.Filled.Star, null, tint = NebulaAmber, modifier = Modifier.size(52.dp))
             Spacer(Modifier.height(16.dp))
             Text("DECK PREMIUM", style = MaterialTheme.typography.displaySmall,
-                color = TextPrimaryDark, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+                color = LocalAppColors.current.textPrimary, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
             Spacer(Modifier.height(8.dp))
             Text("Unlock the full universe of sound & vision",
-                style = MaterialTheme.typography.bodyLarge, color = TextSecondaryDark,
+                style = MaterialTheme.typography.bodyLarge, color = LocalAppColors.current.textSecondary,
                 textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 40.dp))
         }
         Spacer(Modifier.height(32.dp))
@@ -124,7 +125,7 @@ fun PremiumScreen(
                     }
                     Spacer(Modifier.width(14.dp))
                     Text(title, style = MaterialTheme.typography.bodyMedium,
-                        color = TextPrimaryDark, modifier = Modifier.weight(1f))
+                        color = LocalAppColors.current.textPrimary, modifier = Modifier.weight(1f))
                     Icon(Icons.Filled.CheckCircle, null, tint = NebulaGreen, modifier = Modifier.size(20.dp))
                 }
             }
@@ -151,14 +152,14 @@ fun PremiumScreen(
                     Icon(Icons.Filled.LocalOffer, null, tint = NebulaAmber, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(10.dp))
                     Text(prices.promoText, style = MaterialTheme.typography.labelMedium,
-                        color = TextPrimaryDark, fontWeight = FontWeight.SemiBold)
+                        color = LocalAppColors.current.textPrimary, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
 
         Spacer(Modifier.height(12.dp))
         Text("Cancel anytime • Secure payment • Premium never expires for lifetime",
-            style = MaterialTheme.typography.bodySmall, color = TextTertiaryDark,
+            style = MaterialTheme.typography.bodySmall, color = LocalAppColors.current.textTertiary,
             modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
         Spacer(Modifier.height(40.dp))
     }
@@ -177,14 +178,14 @@ fun StatsScreen(
     val topArtist   = topSongs.groupBy { it.first.artist }.maxByOrNull { it.value.sumOf { p -> p.second } }?.key ?: "—"
     val topGenre    = "Mixed"
 
-    Column(Modifier.fillMaxSize().background(DarkBg).verticalScroll(rememberScrollState())) {
+    Column(Modifier.fillMaxSize().background(LocalAppColors.current.bg).verticalScroll(rememberScrollState())) {
         Row(Modifier.fillMaxWidth().padding(start = 8.dp, top = 52.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, null, tint = TextPrimaryDark) }
+            IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, null, tint = LocalAppColors.current.textPrimary) }
             Text("Deck Wrapped", style = MaterialTheme.typography.headlineLarge,
-                color = TextPrimaryDark, fontWeight = FontWeight.Bold)
+                color = LocalAppColors.current.textPrimary, fontWeight = FontWeight.Bold)
         }
         Text("Your listening story", style = MaterialTheme.typography.bodyMedium,
-            color = TextSecondaryDark, modifier = Modifier.padding(start = 20.dp, bottom = 20.dp))
+            color = LocalAppColors.current.textSecondary, modifier = Modifier.padding(start = 20.dp, bottom = 20.dp))
 
         // Hero stats row
         Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp),
@@ -211,7 +212,7 @@ fun StatsScreen(
         // Top tracks
         if (topSongs.isNotEmpty()) {
             Text("Most Played", style = MaterialTheme.typography.headlineSmall,
-                color = TextPrimaryDark, fontWeight = FontWeight.Bold,
+                color = LocalAppColors.current.textPrimary, fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
             topSongs.take(5).forEachIndexed { i, (song, count) ->
                 Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
@@ -226,19 +227,19 @@ fun StatsScreen(
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
                         Text(song.title, style = MaterialTheme.typography.titleSmall,
-                            color = TextPrimaryDark, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(song.artist, style = MaterialTheme.typography.bodySmall, color = TextTertiaryDark)
+                            color = LocalAppColors.current.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(song.artist, style = MaterialTheme.typography.bodySmall, color = LocalAppColors.current.textTertiary)
                     }
-                    Text("$count plays", style = MaterialTheme.typography.labelSmall, color = TextTertiaryDark)
+                    Text("$count plays", style = MaterialTheme.typography.labelSmall, color = LocalAppColors.current.textTertiary)
                 }
             }
         } else {
             Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Filled.BarChart, null, tint = TextTertiaryDark, modifier = Modifier.size(48.dp))
+                    Icon(Icons.Filled.BarChart, null, tint = LocalAppColors.current.textTertiary, modifier = Modifier.size(48.dp))
                     Spacer(Modifier.height(12.dp))
                     Text("Play some music to build your stats!",
-                        style = MaterialTheme.typography.bodyMedium, color = TextTertiaryDark,
+                        style = MaterialTheme.typography.bodyMedium, color = LocalAppColors.current.textTertiary,
                         textAlign = TextAlign.Center)
                 }
             }
@@ -247,10 +248,10 @@ fun StatsScreen(
 
         // Weekly activity bars (simulated from recent plays)
         Box(Modifier.fillMaxWidth().padding(horizontal = 20.dp).clip(RoundedCornerShape(20.dp))
-            .background(DarkCard).border(0.5.dp, DarkBorder, RoundedCornerShape(20.dp)).padding(20.dp)) {
+            .background(LocalAppColors.current.card).border(0.5.dp, LocalAppColors.current.border, RoundedCornerShape(20.dp)).padding(20.dp)) {
             Column {
                 Text("Weekly Activity", style = MaterialTheme.typography.headlineSmall,
-                    color = TextPrimaryDark, fontWeight = FontWeight.Bold)
+                    color = LocalAppColors.current.textPrimary, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(20.dp))
                 val days = listOf("M","T","W","T","F","S","S")
                 val heights = remember(stats) {
@@ -270,9 +271,9 @@ fun StatsScreen(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Box(Modifier.width(28.dp).fillMaxHeight(heights[i].coerceAtLeast(0.05f))
                                 .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
-                                .background(if (heights[i] == heights.max()) NebulaViolet else DarkBorder))
+                                .background(if (heights[i] == heights.max()) NebulaViolet else LocalAppColors.current.border))
                             Spacer(Modifier.height(6.dp))
-                            Text(day, style = MaterialTheme.typography.labelSmall, color = TextTertiaryDark)
+                            Text(day, style = MaterialTheme.typography.labelSmall, color = LocalAppColors.current.textTertiary)
                         }
                     }
                 }

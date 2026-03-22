@@ -31,6 +31,7 @@ import com.sayaem.nebula.data.models.RepeatMode
 import com.sayaem.nebula.data.models.Song
 import com.sayaem.nebula.ui.components.PlayingIndicator
 import com.sayaem.nebula.ui.theme.*
+import com.sayaem.nebula.ui.theme.LocalAppColors
 
 @Composable
 fun NowPlayingScreen(
@@ -61,7 +62,7 @@ fun NowPlayingScreen(
     val song = state.currentSong
 
     val bgAnim by animateColorAsState(
-        if (state.isPlaying) NebulaViolet.copy(alpha = 0.25f) else DarkBgSecondary,
+        if (state.isPlaying) NebulaViolet.copy(alpha = 0.25f) else LocalAppColors.current.bgSecondary,
         animationSpec = tween(800), label = "bg"
     )
 
@@ -98,7 +99,7 @@ fun NowPlayingScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()
-        .background(Brush.verticalGradient(listOf(bgAnim, DarkBg)))) {
+        .background(Brush.verticalGradient(listOf(bgAnim, LocalAppColors.current.bg)))) {
         Column(
             modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -111,7 +112,7 @@ fun NowPlayingScreen(
                 verticalAlignment = Alignment.CenterVertically) {
                 CircleBtn(Icons.Filled.KeyboardArrowDown, onClick = onClose)
                 Text("Now Playing", style = MaterialTheme.typography.labelMedium,
-                    color = TextSecondaryDark)
+                    color = LocalAppColors.current.textSecondary)
                 CircleBtn(Icons.Filled.QueueMusic, onClick = { showQueue = true })
             }
 
@@ -160,7 +161,7 @@ fun NowPlayingScreen(
                         else Icon(Icons.Filled.MusicNote, null,
                             tint = NebulaViolet, modifier = Modifier.size(44.dp))
                     }
-                    Box(Modifier.size(18.dp).clip(CircleShape).background(DarkBg))
+                    Box(Modifier.size(18.dp).clip(CircleShape).background(LocalAppColors.current.bg))
                 }
             }
 
@@ -173,11 +174,11 @@ fun NowPlayingScreen(
                 Column(Modifier.weight(1f)) {
                     Text(song?.title ?: "Nothing playing",
                         style = MaterialTheme.typography.displaySmall,
-                        color = TextPrimaryDark, fontWeight = FontWeight.Bold,
+                        color = LocalAppColors.current.textPrimary, fontWeight = FontWeight.Bold,
                         maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Spacer(Modifier.height(4.dp))
                     Text(song?.artist ?: "",
-                        style = MaterialTheme.typography.bodyLarge, color = TextSecondaryDark,
+                        style = MaterialTheme.typography.bodyLarge, color = LocalAppColors.current.textSecondary,
                         maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 val favScale by animateFloatAsState(if (isFav) 1.3f else 1f,
@@ -316,7 +317,7 @@ private fun ExtraBtn(
                 modifier = Modifier.size(18.dp))
         }
         Spacer(Modifier.height(5.dp))
-        Text(label, style = MaterialTheme.typography.labelSmall, color = TextTertiaryDark)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = LocalAppColors.current.textTertiary)
     }
 }
 
@@ -345,13 +346,13 @@ fun QueueSheet(
                 .fillMaxHeight(0.75f)
                 .align(Alignment.BottomCenter)
                 .clip(androidx.compose.foundation.shape.RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
-                .background(DarkBgSecondary)
+                .background(LocalAppColors.current.bgSecondary)
                 .clickable(enabled = false) {}
         ) {
             // Handle + header
             Box(Modifier.width(36.dp).height(4.dp)
                 .clip(androidx.compose.foundation.shape.RoundedCornerShape(2.dp))
-                .background(DarkBorder)
+                .background(LocalAppColors.current.border)
                 .align(Alignment.CenterHorizontally)
                 .padding(top = 12.dp))
 
@@ -360,9 +361,9 @@ fun QueueSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically) {
                 Text("Up Next", style = MaterialTheme.typography.headlineSmall,
-                    color = TextPrimaryDark, fontWeight = FontWeight.Bold)
+                    color = LocalAppColors.current.textPrimary, fontWeight = FontWeight.Bold)
                 Text("${queue.size} songs", style = MaterialTheme.typography.bodySmall,
-                    color = TextTertiaryDark)
+                    color = LocalAppColors.current.textTertiary)
             }
             Spacer(Modifier.height(12.dp))
 
@@ -386,7 +387,7 @@ fun QueueSheet(
                                     modifier = Modifier.size(18.dp))
                             } else {
                                 Text("${i + 1}", style = MaterialTheme.typography.labelSmall,
-                                    color = TextTertiaryDark)
+                                    color = LocalAppColors.current.textTertiary)
                             }
                         }
                         Spacer(Modifier.width(12.dp))
@@ -399,17 +400,17 @@ fun QueueSheet(
                                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                             Text(song.artist,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = TextTertiaryDark,
+                                color = LocalAppColors.current.textTertiary,
                                 maxLines = 1)
                         }
                         Text(song.durationFormatted,
                             style = MaterialTheme.typography.labelSmall,
-                            color = TextTertiaryDark)
+                            color = LocalAppColors.current.textTertiary)
                     }
                     if (i < queue.size - 1) {
                         HorizontalDivider(
                             Modifier.padding(start = 60.dp),
-                            color = DarkBorderSubtle,
+                            color = LocalAppColors.current.borderSubtle,
                             thickness = 0.5.dp
                         )
                     }
@@ -478,7 +479,7 @@ fun WaveformSeekBar(
                     val played  = barFrac <= displayProgress
 
                     // Bar color: played = violet, unplayed = dark
-                    val color = if (played) NebulaViolet else DarkBorder
+                    val color = if (played) NebulaViolet else LocalAppColors.current.border
 
                     drawRoundRect(
                         color       = color,
@@ -502,14 +503,14 @@ fun WaveformSeekBar(
         Row(Modifier.fillMaxWidth().padding(top = 4.dp),
             horizontalArrangement = Arrangement.SpaceBetween) {
             Text(formatMs(position), style = MaterialTheme.typography.labelSmall,
-                color = TextTertiaryDark)
+                color = LocalAppColors.current.textTertiary)
             if (isDragging) {
                 Text(formatMs((dragProgress * duration).toLong()),
                     style = MaterialTheme.typography.labelSmall, color = NebulaViolet,
                     fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
             }
             Text(formatMs(duration), style = MaterialTheme.typography.labelSmall,
-                color = TextTertiaryDark)
+                color = LocalAppColors.current.textTertiary)
         }
     }
 }

@@ -45,3 +45,42 @@ val VisualizerColors = listOf(
     Color(0xFFFF6B9D), Color(0xFFFF8B6E),
     Color(0xFF00D9FF), Color(0xFF00E5A0)
 )
+
+// ── Theme-aware color provider ────────────────────────────────────
+data class AppColors(
+    val bg: Color,
+    val bgSecondary: Color,
+    val surface: Color,
+    val card: Color,
+    val border: Color,
+    val borderSubtle: Color,
+    val textPrimary: Color,
+    val textSecondary: Color,
+    val textTertiary: Color,
+)
+
+val DarkAppColors = AppColors(
+    bg           = DarkBg,
+    bgSecondary  = DarkBgSecondary,
+    surface      = DarkSurface,
+    card         = DarkCard,
+    border       = DarkBorder,
+    borderSubtle = DarkBorderSubtle,
+    textPrimary  = TextPrimaryDark,
+    textSecondary= TextSecondaryDark,
+    textTertiary = TextTertiaryDark,
+)
+
+val LightAppColors = AppColors(
+    bg           = LightBg,
+    bgSecondary  = Color(0xFFEEECFF),
+    surface      = LightSurface,
+    card         = LightCard,
+    border       = LightBorder,
+    borderSubtle = Color(0xFFF0EEFF),
+    textPrimary  = TextPrimaryLight,
+    textSecondary= TextSecondaryLight,
+    textTertiary = TextTertiaryLight,
+)
+
+val LocalAppColors = androidx.compose.runtime.staticCompositionLocalOf { DarkAppColors }

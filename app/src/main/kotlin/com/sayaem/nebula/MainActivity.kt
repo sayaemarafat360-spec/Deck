@@ -30,6 +30,7 @@ import com.sayaem.nebula.ui.components.MiniPlayer
 import com.sayaem.nebula.ui.screens.*
 import com.sayaem.nebula.backend.BackendViewModel
 import com.sayaem.nebula.ui.theme.*
+import com.sayaem.nebula.ui.theme.LocalAppColors
 
 class MainActivity : ComponentActivity() {
 
@@ -160,8 +161,8 @@ fun DeckRoot(vm: MainViewModel, backendVm: BackendViewModel, onGoogleSignIn: () 
             }
             // Base handler: prevents accidental exit — minimizes instead
             // Back nav: non-Home tab → go to Home. Home tab → swallow (prevent exit)
-            BackHandler(enabled = currentTab != Screen.Home) { navigateTo(Screen.Home) }
-            BackHandler(enabled = currentTab == Screen.Home) { /* swallow — prevent exit */ }
+            BackHandler(enabled = tabBackStack.size > 1) { tabBackStack.removeLastOrNull() }
+            BackHandler(enabled = tabBackStack.size <= 1) { /* on Home root — swallow to prevent exit */ }
 
             // ── Onboarding ────────────────────────────────────────────
             if (showOnboarding) {
@@ -207,10 +208,7 @@ fun DeckRoot(vm: MainViewModel, backendVm: BackendViewModel, onGoogleSignIn: () 
                             onMoreVideoClick  = { optionsSong = it },
                             isPremium        = isPremium,
                             recentlyAdded = recentlyAdded,
-                            onVideoClick = { song ->
-                                videoSong = song
-                                vm.player.playQueue(listOf(song), 0)
-                            },
+                            onVideoClick   = { song -> videoSong = song },
                             onPremiumClick = { navigateTo(Screen.Premium) },
                             onStatsClick   = { navigateTo(Screen.Stats) },
                         )
@@ -226,10 +224,7 @@ fun DeckRoot(vm: MainViewModel, backendVm: BackendViewModel, onGoogleSignIn: () 
                             playlists   = playlists,
                             folders     = folders,
                             onSongClick  = { vm.playSong(it); showNowPlaying = true },
-                            onVideoClick = { song ->
-                                videoSong = song
-                                vm.player.playQueue(listOf(song), 0)
-                            },
+                            onVideoClick = { song -> videoSong = song },
                             onPlayPlaylist          = { vm.playPlaylist(it); showNowPlaying = true },
                             onCreatePlaylist        = { vm.createPlaylist(it) },
                             onDeletePlaylist        = { vm.deletePlaylist(it) },
@@ -428,8 +423,8 @@ fun DeckBottomNav(current: Screen, onNavigate: (Screen) -> Unit) {
                 colors   = NavigationBarItemDefaults.colors(
                     selectedIconColor   = NebulaViolet,
                     selectedTextColor   = NebulaViolet,
-                    unselectedIconColor = TextTertiaryDark,
-                    unselectedTextColor = TextTertiaryDark,
+                    unselectedIconColor = LocalAppColors.current.textTertiary,
+                    unselectedTextColor = LocalAppColors.current.textTertiary,
                     indicatorColor      = NebulaViolet.copy(alpha = 0.15f),
                 )
             )

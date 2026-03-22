@@ -18,6 +18,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
 import com.sayaem.nebula.data.models.Song
 import com.sayaem.nebula.ui.theme.*
+import com.sayaem.nebula.ui.theme.LocalAppColors
 import kotlinx.coroutines.delay
 import java.io.File
 
@@ -83,12 +84,12 @@ fun LyricsSheet(
             Modifier.fillMaxWidth().fillMaxHeight(0.85f)
                 .align(Alignment.BottomCenter)
                 .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
-                .background(DarkBgSecondary)
+                .background(LocalAppColors.current.bgSecondary)
                 .clickable(enabled = false) {}
         ) {
             // Handle
             Box(Modifier.width(36.dp).height(4.dp).clip(RoundedCornerShape(2.dp))
-                .background(DarkBorder).align(Alignment.CenterHorizontally).padding(top = 0.dp))
+                .background(LocalAppColors.current.border).align(Alignment.CenterHorizontally).padding(top = 0.dp))
 
             Spacer(Modifier.height(16.dp))
 
@@ -97,29 +98,29 @@ fun LyricsSheet(
                 verticalAlignment = Alignment.CenterVertically) {
                 Column {
                     Text("Lyrics", style = MaterialTheme.typography.headlineSmall,
-                        color = TextPrimaryDark, fontWeight = FontWeight.Bold)
+                        color = LocalAppColors.current.textPrimary, fontWeight = FontWeight.Bold)
                     Text(song.title, style = MaterialTheme.typography.bodySmall,
-                        color = TextSecondaryDark)
+                        color = LocalAppColors.current.textSecondary)
                 }
-                Icon(Icons.Filled.Close, null, tint = TextTertiaryDark,
+                Icon(Icons.Filled.Close, null, tint = LocalAppColors.current.textTertiary,
                     modifier = Modifier.size(20.dp).clickable(onClick = onDismiss))
             }
 
             Spacer(Modifier.height(12.dp))
-            HorizontalDivider(color = DarkBorder, thickness = 0.5.dp)
+            HorizontalDivider(color = LocalAppColors.current.border, thickness = 0.5.dp)
 
             if (lyrics.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Filled.MusicOff, null, tint = TextTertiaryDark,
+                        Icon(Icons.Filled.MusicOff, null, tint = LocalAppColors.current.textTertiary,
                             modifier = Modifier.size(48.dp))
                         Spacer(Modifier.height(14.dp))
                         Text("No lyrics found", style = MaterialTheme.typography.headlineSmall,
-                            color = TextTertiaryDark)
+                            color = LocalAppColors.current.textTertiary)
                         Spacer(Modifier.height(8.dp))
                         Text("Add a .lrc file with the same name\nas the song in the same folder",
                             style = MaterialTheme.typography.bodySmall,
-                            color = TextTertiaryDark, textAlign = TextAlign.Center)
+                            color = LocalAppColors.current.textTertiary, textAlign = TextAlign.Center)
                     }
                 }
             } else {

@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
 import com.sayaem.nebula.ui.theme.*
+import com.sayaem.nebula.ui.theme.LocalAppColors
 import kotlinx.coroutines.launch
 import kotlin.math.*
 
@@ -77,7 +78,7 @@ fun OnboardingScreen(onDone: () -> Unit) {
 
     val pagerState = rememberPagerState { pages.size }
 
-    Box(Modifier.fillMaxSize().background(DarkBg)) {
+    Box(Modifier.fillMaxSize().background(LocalAppColors.current.bg)) {
         // Animated background blobs
         val page = pages[pagerState.currentPage]
         AnimatedContent(page.accentColor, transitionSpec = {
@@ -96,7 +97,7 @@ fun OnboardingScreen(onDone: () -> Unit) {
         // Skip button
         TextButton(onClick = onDone, modifier = Modifier.align(Alignment.TopEnd).padding(20.dp)) {
             Text("Skip", style = MaterialTheme.typography.labelLarge,
-                color = TextSecondaryDark)
+                color = LocalAppColors.current.textSecondary)
         }
 
         Column(
@@ -136,13 +137,13 @@ fun OnboardingScreen(onDone: () -> Unit) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(pages[idx].title,
                         style = MaterialTheme.typography.displaySmall,
-                        color = TextPrimaryDark,
+                        color = LocalAppColors.current.textPrimary,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center)
                     Spacer(Modifier.height(16.dp))
                     Text(pages[idx].subtitle,
                         style = MaterialTheme.typography.bodyLarge,
-                        color = TextSecondaryDark,
+                        color = LocalAppColors.current.textSecondary,
                         textAlign = TextAlign.Center,
                         lineHeight = 26.sp)
                 }
@@ -220,7 +221,7 @@ fun PlayIllustration(pulse: Float, rotate: Float) {
         // Color band
         drawCircle(NebulaViolet.copy(alpha = 0.3f), radius = 50f, style = Stroke(8f))
         // Center hole
-        drawCircle(DarkBg, radius = 12f)
+        drawCircle(LocalAppColors.current.bg, radius = 12f)
         drawCircle(NebulaViolet.copy(alpha = 0.6f), radius = 12f, style = Stroke(2f))
 
         // Spinning needle arm
@@ -308,9 +309,9 @@ fun EqIllustration(wave: Float, pulse: Float) {
             center = androidx.compose.ui.geometry.Offset(hcx - 50f, hcy))
         drawCircle(NebulaCyan, radius = 16f,
             center = androidx.compose.ui.geometry.Offset(hcx + 50f, hcy))
-        drawCircle(DarkBg, radius = 10f,
+        drawCircle(LocalAppColors.current.bg, radius = 10f,
             center = androidx.compose.ui.geometry.Offset(hcx - 50f, hcy))
-        drawCircle(DarkBg, radius = 10f,
+        drawCircle(LocalAppColors.current.bg, radius = 10f,
             center = androidx.compose.ui.geometry.Offset(hcx + 50f, hcy))
     }
 }

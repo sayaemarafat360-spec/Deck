@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.*
 import com.sayaem.nebula.data.models.Playlist
 import com.sayaem.nebula.data.models.Song
 import com.sayaem.nebula.ui.theme.*
+import com.sayaem.nebula.ui.theme.LocalAppColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -64,14 +65,14 @@ fun SongOptionsSheet(
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
                 .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
-                .background(DarkBgSecondary)
+                .background(LocalAppColors.current.bgSecondary)
                 .clickable(enabled = false) {}
                 .navigationBarsPadding()
         ) {
             // Drag handle
             Box(
                 Modifier.width(36.dp).height(4.dp)
-                    .clip(RoundedCornerShape(2.dp)).background(DarkBorder)
+                    .clip(RoundedCornerShape(2.dp)).background(LocalAppColors.current.border)
                     .align(Alignment.CenterHorizontally).padding(top = 0.dp)
             )
             Spacer(Modifier.height(16.dp))
@@ -91,14 +92,14 @@ fun SongOptionsSheet(
                 Spacer(Modifier.width(14.dp))
                 Column(Modifier.weight(1f)) {
                     Text(song.title, style = MaterialTheme.typography.titleMedium,
-                        color = TextPrimaryDark, fontWeight = FontWeight.SemiBold,
+                        color = LocalAppColors.current.textPrimary, fontWeight = FontWeight.SemiBold,
                         maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(song.artist, style = MaterialTheme.typography.bodySmall,
-                        color = TextSecondaryDark, maxLines = 1)
+                        color = LocalAppColors.current.textSecondary, maxLines = 1)
                 }
             }
 
-            HorizontalDivider(color = DarkBorder, thickness = 0.5.dp)
+            HorizontalDivider(color = LocalAppColors.current.border, thickness = 0.5.dp)
             Spacer(Modifier.height(8.dp))
 
             // Menu items
@@ -133,12 +134,12 @@ fun SongOptionsSheet(
             Column(
                 Modifier.fillMaxWidth().align(Alignment.BottomCenter)
                     .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
-                    .background(DarkBgSecondary)
+                    .background(LocalAppColors.current.bgSecondary)
                     .clickable(enabled = false) {}
                     .padding(20.dp).navigationBarsPadding()
             ) {
                 Text("Add to Playlist", style = MaterialTheme.typography.headlineSmall,
-                    color = TextPrimaryDark, fontWeight = FontWeight.Bold)
+                    color = LocalAppColors.current.textPrimary, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(16.dp))
 
                 // New playlist input
@@ -146,11 +147,11 @@ fun SongOptionsSheet(
                     horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(
                         value = newPlaylistName, onValueChange = { newPlaylistName = it },
-                        modifier = Modifier.weight(1f), placeholder = { Text("New playlist name", color = TextTertiaryDark) },
+                        modifier = Modifier.weight(1f), placeholder = { Text("New playlist name", color = LocalAppColors.current.textTertiary) },
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = TextPrimaryDark, unfocusedTextColor = TextPrimaryDark,
-                            focusedBorderColor = NebulaViolet, unfocusedBorderColor = DarkBorder,
+                            focusedTextColor = LocalAppColors.current.textPrimary, unfocusedTextColor = LocalAppColors.current.textPrimary,
+                            focusedBorderColor = NebulaViolet, unfocusedBorderColor = LocalAppColors.current.border,
                         )
                     )
                     Button(onClick = {
@@ -168,7 +169,7 @@ fun SongOptionsSheet(
 
                 Spacer(Modifier.height(14.dp))
                 if (playlists.isNotEmpty()) {
-                    Text("Existing playlists", style = MaterialTheme.typography.labelSmall, color = TextTertiaryDark)
+                    Text("Existing playlists", style = MaterialTheme.typography.labelSmall, color = LocalAppColors.current.textTertiary)
                     Spacer(Modifier.height(8.dp))
                     LazyColumn(Modifier.heightIn(max = 220.dp)) {
                         items(playlists) { pl ->
@@ -183,12 +184,12 @@ fun SongOptionsSheet(
                                 Icon(Icons.Filled.QueueMusic, null, tint = NebulaPink, modifier = Modifier.size(20.dp))
                                 Spacer(Modifier.width(12.dp))
                                 Column(Modifier.weight(1f)) {
-                                    Text(pl.name, style = MaterialTheme.typography.bodyMedium, color = TextPrimaryDark)
-                                    Text("${pl.songCount} songs", style = MaterialTheme.typography.labelSmall, color = TextTertiaryDark)
+                                    Text(pl.name, style = MaterialTheme.typography.bodyMedium, color = LocalAppColors.current.textPrimary)
+                                    Text("${pl.songCount} songs", style = MaterialTheme.typography.labelSmall, color = LocalAppColors.current.textTertiary)
                                 }
-                                Icon(Icons.Filled.Add, null, tint = TextTertiaryDark, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Filled.Add, null, tint = LocalAppColors.current.textTertiary, modifier = Modifier.size(18.dp))
                             }
-                            HorizontalDivider(color = DarkBorderSubtle, thickness = 0.5.dp)
+                            HorizontalDivider(color = LocalAppColors.current.borderSubtle, thickness = 0.5.dp)
                         }
                     }
                 }
@@ -200,8 +201,8 @@ fun SongOptionsSheet(
     if (showFileInfo) {
         AlertDialog(
             onDismissRequest = { showFileInfo = false },
-            containerColor = DarkCard,
-            title = { Text("File Info", color = TextPrimaryDark, fontWeight = FontWeight.Bold) },
+            containerColor = LocalAppColors.current.card,
+            title = { Text("File Info", color = LocalAppColors.current.textPrimary, fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     InfoRow("Title",    song.title)
@@ -226,11 +227,11 @@ fun SongOptionsSheet(
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            containerColor = DarkCard,
-            title = { Text("Delete File?", color = TextPrimaryDark, fontWeight = FontWeight.Bold) },
+            containerColor = LocalAppColors.current.card,
+            title = { Text("Delete File?", color = LocalAppColors.current.textPrimary, fontWeight = FontWeight.Bold) },
             text = {
                 Text("\"${song.title}\" will be permanently deleted from your device. This cannot be undone.",
-                    color = TextSecondaryDark, style = MaterialTheme.typography.bodyMedium)
+                    color = LocalAppColors.current.textSecondary, style = MaterialTheme.typography.bodyMedium)
             },
             confirmButton = {
                 TextButton(onClick = { onDelete(); showDeleteConfirm = false; onDismiss() }) {
@@ -239,7 +240,7 @@ fun SongOptionsSheet(
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text("Cancel", color = TextSecondaryDark)
+                    Text("Cancel", color = LocalAppColors.current.textSecondary)
                 }
             }
         )
@@ -265,7 +266,7 @@ private fun SongOption(
             Icon(icon, null, tint = tint, modifier = Modifier.size(18.dp))
         }
         Spacer(Modifier.width(14.dp))
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = TextPrimaryDark)
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = LocalAppColors.current.textPrimary)
     }
 }
 
@@ -273,8 +274,8 @@ private fun SongOption(
 private fun InfoRow(label: String, value: String) {
     Row(Modifier.fillMaxWidth()) {
         Text(label, style = MaterialTheme.typography.labelSmall,
-            color = TextTertiaryDark, modifier = Modifier.width(72.dp))
-        Text(value, style = MaterialTheme.typography.bodySmall, color = TextPrimaryDark,
+            color = LocalAppColors.current.textTertiary, modifier = Modifier.width(72.dp))
+        Text(value, style = MaterialTheme.typography.bodySmall, color = LocalAppColors.current.textPrimary,
             modifier = Modifier.weight(1f))
     }
 }

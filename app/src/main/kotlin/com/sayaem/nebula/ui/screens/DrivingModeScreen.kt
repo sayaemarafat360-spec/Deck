@@ -17,6 +17,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import com.sayaem.nebula.data.models.PlaybackState
 import com.sayaem.nebula.ui.theme.*
+import com.sayaem.nebula.ui.theme.LocalAppColors
 
 @Composable
 fun DrivingModeScreen(
@@ -30,16 +31,16 @@ fun DrivingModeScreen(
 
     Box(
         Modifier.fillMaxSize()
-            .background(Brush.verticalGradient(listOf(Color(0xFF050510), DarkBg)))
+            .background(Brush.verticalGradient(listOf(Color(0xFF050510), LocalAppColors.current.bg)))
     ) {
         // Exit button — top right, small
         TextButton(
             onClick = onExit,
             modifier = Modifier.align(Alignment.TopEnd).padding(16.dp).statusBarsPadding()
         ) {
-            Icon(Icons.Filled.ExitToApp, null, tint = TextTertiaryDark, modifier = Modifier.size(16.dp))
+            Icon(Icons.Filled.ExitToApp, null, tint = LocalAppColors.current.textTertiary, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(4.dp))
-            Text("Exit", style = MaterialTheme.typography.labelMedium, color = TextTertiaryDark)
+            Text("Exit", style = MaterialTheme.typography.labelMedium, color = LocalAppColors.current.textTertiary)
         }
 
         Column(
@@ -57,7 +58,7 @@ fun DrivingModeScreen(
             Text(
                 song?.title ?: "Nothing playing",
                 style = MaterialTheme.typography.displaySmall,
-                color = TextPrimaryDark, fontWeight = FontWeight.Bold,
+                color = LocalAppColors.current.textPrimary, fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center, maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
@@ -65,7 +66,7 @@ fun DrivingModeScreen(
             Text(
                 song?.artist ?: "Tap a song to play",
                 style = MaterialTheme.typography.headlineSmall,
-                color = TextSecondaryDark, textAlign = TextAlign.Center, maxLines = 1
+                color = LocalAppColors.current.textSecondary, textAlign = TextAlign.Center, maxLines = 1
             )
 
             Spacer(Modifier.height(48.dp))
@@ -74,7 +75,7 @@ fun DrivingModeScreen(
             LinearProgressIndicator(
                 progress = { state.progress },
                 modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
-                color = NebulaViolet, trackColor = DarkBorder
+                color = NebulaViolet, trackColor = LocalAppColors.current.border
             )
 
             Spacer(Modifier.height(48.dp))
@@ -88,11 +89,11 @@ fun DrivingModeScreen(
                 // Previous — large
                 Box(
                     Modifier.size(88.dp).clip(CircleShape)
-                        .background(DarkCard).border(1.dp, DarkBorder, CircleShape)
+                        .background(LocalAppColors.current.card).border(1.dp, LocalAppColors.current.border, CircleShape)
                         .clickable(onClick = onPrev),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Filled.SkipPrevious, null, tint = TextPrimaryDark,
+                    Icon(Icons.Filled.SkipPrevious, null, tint = LocalAppColors.current.textPrimary,
                         modifier = Modifier.size(44.dp))
                 }
 
@@ -112,11 +113,11 @@ fun DrivingModeScreen(
                 // Next — large
                 Box(
                     Modifier.size(88.dp).clip(CircleShape)
-                        .background(DarkCard).border(1.dp, DarkBorder, CircleShape)
+                        .background(LocalAppColors.current.card).border(1.dp, LocalAppColors.current.border, CircleShape)
                         .clickable(onClick = onNext),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Filled.SkipNext, null, tint = TextPrimaryDark,
+                    Icon(Icons.Filled.SkipNext, null, tint = LocalAppColors.current.textPrimary,
                         modifier = Modifier.size(44.dp))
                 }
             }

@@ -71,9 +71,12 @@ fun DeckTheme(
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography  = NebulaTypography,
-        content     = content,
-    )
+    val appColors   = if (darkTheme) DarkAppColors else LightAppColors
+    androidx.compose.runtime.CompositionLocalProvider(LocalAppColors provides appColors) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography  = NebulaTypography,
+            content     = content,
+        )
+    }
 }

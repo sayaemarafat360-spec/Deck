@@ -24,6 +24,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import com.sayaem.nebula.data.models.PlaybackState
 import com.sayaem.nebula.ui.theme.*
+import com.sayaem.nebula.ui.theme.LocalAppColors
 
 
 // ─── Gradient background ──────────────────────────────────────────────
@@ -32,7 +33,7 @@ fun NebulaBackground(accentColor: Color = NebulaViolet, content: @Composable Box
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(DarkBg),
+            .background(LocalAppColors.current.bg),
         content = content
     )
 }
@@ -46,7 +47,7 @@ fun SectionHeader(title: String, action: String = "", onAction: () -> Unit = {})
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(title, style = MaterialTheme.typography.headlineSmall,
-            color = TextPrimaryDark, fontWeight = FontWeight.Bold)
+            color = LocalAppColors.current.textPrimary, fontWeight = FontWeight.Bold)
         if (action.isNotEmpty()) {
             Text(action, style = MaterialTheme.typography.labelMedium,
                 color = NebulaViolet,
@@ -109,12 +110,12 @@ fun SongTile(
                 color = if (isPlaying) accentColor else TextPrimaryDark,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(artist, style = MaterialTheme.typography.bodySmall,
-                color = TextTertiaryDark, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                color = LocalAppColors.current.textTertiary, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        Text(duration, style = MaterialTheme.typography.labelSmall, color = TextTertiaryDark)
+        Text(duration, style = MaterialTheme.typography.labelSmall, color = LocalAppColors.current.textTertiary)
         Spacer(Modifier.width(8.dp))
         IconButton(onClick = onMoreClick, modifier = Modifier.size(32.dp)) {
-            Icon(Icons.Filled.MoreVert, null, tint = TextTertiaryDark, modifier = Modifier.size(18.dp))
+            Icon(Icons.Filled.MoreVert, null, tint = LocalAppColors.current.textTertiary, modifier = Modifier.size(18.dp))
         }
     }
 }
@@ -153,7 +154,7 @@ fun MiniPlayer(
 
     Surface(
         modifier   = Modifier.fillMaxWidth().clickable(onClick = onExpand),
-        color      = DarkSurface,
+        color      = LocalAppColors.current.surface,
         tonalElevation = 4.dp
     ) {
         Column {
@@ -162,7 +163,7 @@ fun MiniPlayer(
                 progress   = { state.progress },
                 modifier   = Modifier.fillMaxWidth().height(2.dp),
                 color      = NebulaViolet,
-                trackColor = DarkBorder
+                trackColor = LocalAppColors.current.border
             )
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
@@ -195,10 +196,10 @@ fun MiniPlayer(
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text(song.title, style = MaterialTheme.typography.titleSmall,
-                        color = TextPrimaryDark, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        color = LocalAppColors.current.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         fontWeight = FontWeight.Bold)
                     Text(song.artist, style = MaterialTheme.typography.bodySmall,
-                        color = TextSecondaryDark, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        color = LocalAppColors.current.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 // Controls
                 IconButton(onClick = onTogglePlay) {
@@ -219,7 +220,7 @@ fun MiniPlayer(
                 }
                 Spacer(Modifier.width(4.dp))
                 IconButton(onClick = onNext) {
-                    Icon(Icons.Filled.SkipNext, null, tint = TextSecondaryDark, modifier = Modifier.size(24.dp))
+                    Icon(Icons.Filled.SkipNext, null, tint = LocalAppColors.current.textSecondary, modifier = Modifier.size(24.dp))
                 }
             }
         }
@@ -230,7 +231,7 @@ fun MiniPlayer(
 @Composable
 fun MoodChip(label: String, icon: @Composable () -> Unit, selected: Boolean, color: Color, onClick: () -> Unit) {
     val bg = if (selected) color.copy(alpha = 0.18f) else DarkCard
-    val borderColor = if (selected) color.copy(alpha = 0.5f) else DarkBorder
+    val borderColor = if (selected) color.copy(alpha = 0.5f) else LocalAppColors.current.border
 
     Row(
         modifier = Modifier
@@ -290,15 +291,15 @@ fun StatCard(value: String, label: String, icon: @Composable () -> Unit, modifie
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(DarkCard)
-            .border(0.5.dp, DarkBorder, RoundedCornerShape(16.dp))
+            .background(LocalAppColors.current.card)
+            .border(0.5.dp, LocalAppColors.current.border, RoundedCornerShape(16.dp))
             .padding(16.dp)
     ) {
         icon()
         Spacer(Modifier.height(10.dp))
         Text(value, style = MaterialTheme.typography.headlineMedium,
-            color = TextPrimaryDark, fontWeight = FontWeight.Bold)
-        Text(label, style = MaterialTheme.typography.bodySmall, color = TextTertiaryDark)
+            color = LocalAppColors.current.textPrimary, fontWeight = FontWeight.Bold)
+        Text(label, style = MaterialTheme.typography.bodySmall, color = LocalAppColors.current.textTertiary)
     }
 }
 

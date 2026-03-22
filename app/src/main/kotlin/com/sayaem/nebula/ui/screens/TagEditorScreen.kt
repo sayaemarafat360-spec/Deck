@@ -14,6 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
 import com.sayaem.nebula.data.models.Song
 import com.sayaem.nebula.ui.theme.*
+import com.sayaem.nebula.ui.theme.LocalAppColors
 
 @Composable
 fun TagEditorScreen(
@@ -26,7 +27,7 @@ fun TagEditorScreen(
     var album  by remember { mutableStateOf(song.album) }
     var saving by remember { mutableStateOf(false) }
 
-    Column(Modifier.fillMaxSize().background(DarkBg)) {
+    Column(Modifier.fillMaxSize().background(LocalAppColors.current.bg)) {
 
         // ── Top bar ──────────────────────────────────────────────────
         Row(
@@ -35,12 +36,12 @@ fun TagEditorScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) {
-                Icon(Icons.Filled.ArrowBack, null, tint = TextPrimaryDark)
+                Icon(Icons.Filled.ArrowBack, null, tint = LocalAppColors.current.textPrimary)
             }
             Text(
                 "Edit Tags",
                 style = MaterialTheme.typography.headlineMedium,
-                color = TextPrimaryDark, fontWeight = FontWeight.Bold,
+                color = LocalAppColors.current.textPrimary, fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(1f).padding(start = 4.dp)
             )
             TextButton(
@@ -71,8 +72,8 @@ fun TagEditorScreen(
         // ── File info card ────────────────────────────────────────────
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)
-                .clip(RoundedCornerShape(16.dp)).background(DarkCard)
-                .border(0.5.dp, DarkBorder, RoundedCornerShape(16.dp)).padding(16.dp),
+                .clip(RoundedCornerShape(16.dp)).background(LocalAppColors.current.card)
+                .border(0.5.dp, LocalAppColors.current.border, RoundedCornerShape(16.dp)).padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
@@ -86,13 +87,13 @@ fun TagEditorScreen(
             Column(Modifier.weight(1f)) {
                 Text(
                     song.filePath.substringAfterLast("/"),
-                    style = MaterialTheme.typography.bodySmall, color = TextTertiaryDark,
+                    style = MaterialTheme.typography.bodySmall, color = LocalAppColors.current.textTertiary,
                     maxLines = 2
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
                     song.sizeFormatted + " · " + song.durationFormatted,
-                    style = MaterialTheme.typography.bodySmall, color = TextTertiaryDark
+                    style = MaterialTheme.typography.bodySmall, color = LocalAppColors.current.textTertiary
                 )
             }
         }
@@ -124,7 +125,7 @@ fun TagEditorScreen(
             Spacer(Modifier.width(10.dp))
             Text(
                 "Changes are written to the device media database. Rescan to refresh all apps.",
-                style = MaterialTheme.typography.bodySmall, color = TextSecondaryDark
+                style = MaterialTheme.typography.bodySmall, color = LocalAppColors.current.textSecondary
             )
         }
     }
@@ -139,9 +140,9 @@ private fun TagField(
 ) {
     Column {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, null, tint = TextTertiaryDark, modifier = Modifier.size(14.dp))
+            Icon(icon, null, tint = LocalAppColors.current.textTertiary, modifier = Modifier.size(14.dp))
             Spacer(Modifier.width(6.dp))
-            Text(label, style = MaterialTheme.typography.labelSmall, color = TextTertiaryDark)
+            Text(label, style = MaterialTheme.typography.labelSmall, color = LocalAppColors.current.textTertiary)
         }
         Spacer(Modifier.height(6.dp))
         OutlinedTextField(
@@ -149,12 +150,12 @@ private fun TagField(
             onValueChange = onChange,
             modifier      = Modifier.fillMaxWidth(),
             singleLine    = true,
-            textStyle     = MaterialTheme.typography.bodyLarge.copy(color = TextPrimaryDark),
+            textStyle     = MaterialTheme.typography.bodyLarge.copy(color = LocalAppColors.current.textPrimary),
             colors        = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor   = NebulaViolet,
-                unfocusedBorderColor = DarkBorder,
-                focusedTextColor     = TextPrimaryDark,
-                unfocusedTextColor   = TextPrimaryDark,
+                unfocusedBorderColor = LocalAppColors.current.border,
+                focusedTextColor     = LocalAppColors.current.textPrimary,
+                unfocusedTextColor   = LocalAppColors.current.textPrimary,
                 cursorColor          = NebulaViolet,
             )
         )

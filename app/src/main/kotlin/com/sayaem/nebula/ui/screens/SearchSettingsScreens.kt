@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.*
 import com.sayaem.nebula.data.models.Song
 import com.sayaem.nebula.ui.components.SongTile
 import com.sayaem.nebula.ui.theme.*
+import com.sayaem.nebula.ui.theme.LocalAppColors
 
 
 
@@ -48,29 +49,29 @@ fun SearchScreen(
     Column(Modifier.fillMaxSize()) {
         Spacer(Modifier.height(52.dp))
         Text("Search", style = MaterialTheme.typography.displaySmall,
-            color = TextPrimaryDark, fontWeight = FontWeight.Bold,
+            color = LocalAppColors.current.textPrimary, fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(horizontal = 20.dp))
         Spacer(Modifier.height(16.dp))
 
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)
-            .clip(RoundedCornerShape(16.dp)).background(DarkCard)
-            .border(0.5.dp, DarkBorder, RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(16.dp)).background(LocalAppColors.current.card)
+            .border(0.5.dp, LocalAppColors.current.border, RoundedCornerShape(16.dp))
             .padding(horizontal = 14.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Filled.Search, null, tint = TextTertiaryDark, modifier = Modifier.size(20.dp))
+            Icon(Icons.Filled.Search, null, tint = LocalAppColors.current.textTertiary, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(10.dp))
             BasicTextField(value = query, onValueChange = onQueryChange,
                 modifier = Modifier.weight(1f),
-                textStyle = MaterialTheme.typography.bodyMedium.copy(color = TextPrimaryDark),
+                textStyle = MaterialTheme.typography.bodyMedium.copy(color = LocalAppColors.current.textPrimary),
                 singleLine = true,
                 decorationBox = { inner ->
                     if (query.isEmpty()) Text("Songs, artists, albums, videos…",
-                        style = MaterialTheme.typography.bodyMedium, color = TextTertiaryDark)
+                        style = MaterialTheme.typography.bodyMedium, color = LocalAppColors.current.textTertiary)
                     inner()
                 })
             if (query.isNotEmpty()) {
                 IconButton(onClick = { onQueryChange("") }, modifier = Modifier.size(20.dp)) {
-                    Icon(Icons.Filled.Close, null, tint = TextTertiaryDark, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Filled.Close, null, tint = LocalAppColors.current.textTertiary, modifier = Modifier.size(16.dp))
                 }
             }
         }
@@ -78,7 +79,7 @@ fun SearchScreen(
 
         if (query.isEmpty()) {
             Text("Browse categories", style = MaterialTheme.typography.headlineSmall,
-                color = TextSecondaryDark, modifier = Modifier.padding(horizontal = 20.dp))
+                color = LocalAppColors.current.textSecondary, modifier = Modifier.padding(horizontal = 20.dp))
             Spacer(Modifier.height(14.dp))
             LazyVerticalGrid(columns = GridCells.Fixed(2),
                 contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
@@ -89,11 +90,12 @@ fun SearchScreen(
                     Row(modifier = Modifier.height(52.dp).clip(RoundedCornerShape(14.dp))
                         .background(cat.color.copy(alpha = 0.15f))
                         .border(0.5.dp, cat.color.copy(alpha = 0.25f), RoundedCornerShape(14.dp))
+                        .clickable { onQueryChange(cat.label) }
                         .padding(horizontal = 16.dp),
                         verticalAlignment = Alignment.CenterVertically) {
                         Icon(cat.icon, null, tint = cat.color, modifier = Modifier.size(22.dp))
                         Spacer(Modifier.width(10.dp))
-                        Text(cat.label, style = MaterialTheme.typography.labelLarge, color = TextPrimaryDark)
+                        Text(cat.label, style = MaterialTheme.typography.labelLarge, color = LocalAppColors.current.textPrimary)
                     }
                 }
             }
@@ -101,10 +103,10 @@ fun SearchScreen(
             if (results.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Filled.SearchOff, null, tint = TextTertiaryDark, modifier = Modifier.size(56.dp))
+                        Icon(Icons.Filled.SearchOff, null, tint = LocalAppColors.current.textTertiary, modifier = Modifier.size(56.dp))
                         Spacer(Modifier.height(16.dp))
                         Text("No results for \"$query\"",
-                            style = MaterialTheme.typography.headlineSmall, color = TextTertiaryDark)
+                            style = MaterialTheme.typography.headlineSmall, color = LocalAppColors.current.textTertiary)
                     }
                 }
             } else {
@@ -157,7 +159,7 @@ fun SettingsScreen(
         item {
             Spacer(Modifier.height(52.dp))
             Text("Settings", style = MaterialTheme.typography.displaySmall,
-                color = TextPrimaryDark, fontWeight = FontWeight.Bold,
+                color = LocalAppColors.current.textPrimary, fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(horizontal = 20.dp))
             Spacer(Modifier.height(20.dp))
         }
@@ -199,10 +201,10 @@ fun SettingsScreen(
                     Spacer(Modifier.width(14.dp))
                     Column(Modifier.weight(1f)) {
                         Text(currentUser.displayName ?: "Signed in", style = MaterialTheme.typography.bodyMedium,
-                            color = TextPrimaryDark, fontWeight = FontWeight.SemiBold)
+                            color = LocalAppColors.current.textPrimary, fontWeight = FontWeight.SemiBold)
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(currentUser.email ?: "", style = MaterialTheme.typography.bodySmall,
-                                color = TextTertiaryDark)
+                                color = LocalAppColors.current.textTertiary)
                             if (isPremium) {
                                 Spacer(Modifier.width(6.dp))
                                 Box(Modifier.clip(RoundedCornerShape(8.dp)).background(NebulaViolet.copy(0.2f))
@@ -227,11 +229,11 @@ fun SettingsScreen(
                     Spacer(Modifier.width(14.dp))
                     Column(Modifier.weight(1f)) {
                         Text("Sign in with Google", style = MaterialTheme.typography.bodyMedium,
-                            color = TextPrimaryDark, fontWeight = FontWeight.SemiBold)
+                            color = LocalAppColors.current.textPrimary, fontWeight = FontWeight.SemiBold)
                         Text("Sync premium, playlists & favorites across devices",
-                            style = MaterialTheme.typography.bodySmall, color = TextTertiaryDark)
+                            style = MaterialTheme.typography.bodySmall, color = LocalAppColors.current.textTertiary)
                     }
-                    Icon(Icons.Filled.ChevronRight, null, tint = TextTertiaryDark, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Filled.ChevronRight, null, tint = LocalAppColors.current.textTertiary, modifier = Modifier.size(18.dp))
                 }
             }
         }
@@ -249,7 +251,7 @@ fun SettingsScreen(
         // Playback
         item { SSection("Playback") }
         item { STile("Equalizer", Icons.Filled.Equalizer, NebulaCyan, "10-band EQ",
-            trailing = { Icon(Icons.Filled.ChevronRight, null, tint = TextTertiaryDark) },
+            trailing = { Icon(Icons.Filled.ChevronRight, null, tint = LocalAppColors.current.textTertiary) },
             onClick = onEqualizerClick) }
         item {
             STile("Gapless Playback", Icons.Filled.GraphicEq, NebulaGreen, "No silence between tracks",
@@ -269,9 +271,9 @@ fun SettingsScreen(
                         }
                         Spacer(Modifier.width(14.dp))
                         Column {
-                            Text("Crossfade", style = MaterialTheme.typography.bodyMedium, color = TextPrimaryDark)
+                            Text("Crossfade", style = MaterialTheme.typography.bodyMedium, color = LocalAppColors.current.textPrimary)
                             Text(if (crossfade == 0f) "Off" else "${crossfade.toInt()}s",
-                                style = MaterialTheme.typography.bodySmall, color = TextTertiaryDark)
+                                style = MaterialTheme.typography.bodySmall, color = LocalAppColors.current.textTertiary)
                         }
                     }
                     Text(if (crossfade == 0f) "Off" else "${crossfade.toInt()}s",
@@ -282,12 +284,12 @@ fun SettingsScreen(
                     onCrossfadeChanged?.invoke(it)
                 }, valueRange = 0f..10f, steps = 9,
                     colors = SliderDefaults.colors(activeTrackColor = NebulaVioletLight,
-                        thumbColor = Color.White, inactiveTrackColor = DarkBorder),
+                        thumbColor = Color.White, inactiveTrackColor = LocalAppColors.current.border),
                     modifier = Modifier.padding(start = 50.dp))
             }
         }
         item { STile("Sleep Timer", Icons.Filled.Timer, NebulaCyan,
-            trailing = { Icon(Icons.Filled.ChevronRight, null, tint = TextTertiaryDark) },
+            trailing = { Icon(Icons.Filled.ChevronRight, null, tint = LocalAppColors.current.textTertiary) },
             onClick = { onSleepTimerClick?.invoke() }) }
         item { Spacer(Modifier.height(8.dp)) }
 
@@ -295,10 +297,10 @@ fun SettingsScreen(
         item { SSection("Library") }
         item { STile("Driving Mode", Icons.Filled.DirectionsCar, NebulaGreen,
                 "Large controls for safe listening while driving",
-                trailing = { Icon(Icons.Filled.ChevronRight, null, tint = TextTertiaryDark) },
+                trailing = { Icon(Icons.Filled.ChevronRight, null, tint = LocalAppColors.current.textTertiary) },
                 onClick = { onDrivingMode?.invoke() }) }
         item { STile("Rescan Media", Icons.Filled.Refresh, NebulaGreen, "Find new files on device",
-            trailing = { Icon(Icons.Filled.ChevronRight, null, tint = TextTertiaryDark) },
+            trailing = { Icon(Icons.Filled.ChevronRight, null, tint = LocalAppColors.current.textTertiary) },
             onClick = { onRescan?.invoke() }) }
         item { Spacer(Modifier.height(8.dp)) }
 
@@ -313,7 +315,7 @@ fun SettingsScreen(
                 }, colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = NebulaViolet)) })
         }
         item { STile("Listening Stats", Icons.Filled.BarChart, NebulaViolet, "Your Deck Wrapped",
-            trailing = { Icon(Icons.Filled.ChevronRight, null, tint = TextTertiaryDark) },
+            trailing = { Icon(Icons.Filled.ChevronRight, null, tint = LocalAppColors.current.textTertiary) },
             onClick = onStatsClick) }
         item { Spacer(Modifier.height(8.dp)) }
 
@@ -322,7 +324,7 @@ fun SettingsScreen(
         item { STile("Version", Icons.Filled.Info, NebulaViolet, "Deck v1.0.0") }
         item {
             STile("Rate on Play Store", Icons.Filled.Star, NebulaAmber,
-                trailing = { Icon(Icons.Filled.OpenInNew, null, tint = TextTertiaryDark) },
+                trailing = { Icon(Icons.Filled.OpenInNew, null, tint = LocalAppColors.current.textTertiary) },
                 onClick = {
                     try {
                         context.startActivity(Intent(Intent.ACTION_VIEW,
@@ -333,7 +335,7 @@ fun SettingsScreen(
         }
         item {
             STile("Share Deck", Icons.Filled.Share, NebulaGreen,
-                trailing = { Icon(Icons.Filled.ChevronRight, null, tint = TextTertiaryDark) },
+                trailing = { Icon(Icons.Filled.ChevronRight, null, tint = LocalAppColors.current.textTertiary) },
                 onClick = {
                     val i = Intent(Intent.ACTION_SEND).apply {
                         type = "text/plain"
@@ -351,7 +353,7 @@ fun SettingsScreen(
 @Composable
 fun SSection(title: String) {
     Text(title.uppercase(), style = MaterialTheme.typography.labelSmall,
-        color = TextTertiaryDark, letterSpacing = 1.sp,
+        color = LocalAppColors.current.textTertiary, letterSpacing = 1.sp,
         modifier = Modifier.padding(start = 20.dp, top = 4.dp, bottom = 8.dp))
 }
 
@@ -371,9 +373,9 @@ fun STile(
         }
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyMedium, color = TextPrimaryDark)
+            Text(title, style = MaterialTheme.typography.bodyMedium, color = LocalAppColors.current.textPrimary)
             if (subtitle != null)
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = TextTertiaryDark)
+                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = LocalAppColors.current.textTertiary)
         }
         trailing?.invoke()
     }
