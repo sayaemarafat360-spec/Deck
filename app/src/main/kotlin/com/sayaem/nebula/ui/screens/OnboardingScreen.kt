@@ -421,7 +421,7 @@ fun LibraryIllustration(pulse: Float, wave: Float) {
                 drawRoundRect(color.copy(alpha = 0.8f),
                     topLeft = androidx.compose.ui.geometry.Offset(-cardW/2, -cardH/2),
                     size    = androidx.compose.ui.geometry.Size(6f, cardH),
-                    cornerRadius = CornerRadius(topLeft = 12f, topRight = 0f, bottomLeft = 12f, bottomRight = 0f))
+                    cornerRadius = CornerRadius(12f, 12f))
                 // Play icon placeholder
                 drawCircle(color.copy(alpha = 0.15f), radius = 14f,
                     center = androidx.compose.ui.geometry.Offset(cardW/2 - 22f, 0f))
