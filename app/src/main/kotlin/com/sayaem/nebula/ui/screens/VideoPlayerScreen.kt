@@ -48,8 +48,9 @@ import kotlinx.coroutines.delay
 @Composable
 fun VideoPlayerScreen(
     video: Song,
-    player: ExoPlayer?,   // kept for API compat but we use our own
+    player: ExoPlayer?,
     onBack: () -> Unit,
+    onPauseMusic: () -> Unit = {},
 ) {
     val context  = LocalContext.current
     val activity = context as? Activity
@@ -114,8 +115,9 @@ fun VideoPlayerScreen(
         AspectRatioFrameLayout.RESIZE_MODE_ZOOM,
     )
 
-    // Force landscape, keep screen on
+    // Pause music, force landscape, keep screen on
     LaunchedEffect(Unit) {
+        onPauseMusic()
         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }

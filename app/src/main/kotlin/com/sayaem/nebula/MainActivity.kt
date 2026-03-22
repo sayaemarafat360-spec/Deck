@@ -138,7 +138,7 @@ fun DeckRoot(vm: MainViewModel, backendVm: BackendViewModel, onGoogleSignIn: () 
     }
 
     DeckTheme(darkTheme = isDark) {
-        Box(Modifier.fillMaxSize().background(DarkBg)) {
+        Box(Modifier.fillMaxSize().background(androidx.compose.material3.MaterialTheme.colorScheme.background)) {
 
             // ── Back button handlers — MUST be inside composition tree ──
             // Order: most specific first, base handler last
@@ -154,13 +154,9 @@ fun DeckRoot(vm: MainViewModel, backendVm: BackendViewModel, onGoogleSignIn: () 
                 // Restore music playback if it was interrupted by video
             }
             // Base handler: prevents accidental exit — minimizes instead
-            BackHandler(enabled = currentTab == Screen.Home) {
-                // Do nothing — swallow the back press on home tab
-                // User must use recents/swipe to exit
-            }
-            BackHandler(enabled = currentTab != Screen.Home) {
-                currentTab = Screen.Home
-            }
+            // Swallow back on home tab to prevent exit
+            // Don't navigate tabs on back - let user navigate explicitly
+            BackHandler(enabled = currentTab == Screen.Home) { /* prevent exit */ }
 
             // ── Onboarding ────────────────────────────────────────────
             if (showOnboarding) {
@@ -217,9 +213,10 @@ fun DeckRoot(vm: MainViewModel, backendVm: BackendViewModel, onGoogleSignIn: () 
                             songs    = songs, videos = videos,
                             currentSong = playback.currentSong,
                             isPlaying   = playback.isPlaying,
-                            onMoreClick  = { optionsSong = it },
-                            onPlayNext   = { vm.playNext(it) },
-                            onAddToQueue = { vm.addToQueue(it) },
+                            onMoreClick      = { optionsSong = it },
+                            onMoreVideoClick = { optionsSong = it },
+                            onPlayNext       = { vm.playNext(it) },
+                            onAddToQueue     = { vm.addToQueue(it) },
                             favorites   = favorites,
                             playlists   = playlists,
                             folders     = folders,
@@ -243,21 +240,27 @@ fun DeckRoot(vm: MainViewModel, backendVm: BackendViewModel, onGoogleSignIn: () 
                             onSongClick = { vm.playSong(it); showNowPlaying = true }
                         )
                         Screen.Settings -> SettingsScreen(
-                            currentUser       = backendUser,
-                            isPremium         = isPremium,
-                            onSignIn          = onGoogleSignIn,
-                            onSignOut         = { backendVm.signOut() },
-                            isDark            = isDark,
-                            onToggleTheme     = vm::toggleTheme,
-                            onEqualizerClick  = { showEqualizer = true },
-                            onPremiumClick    = { currentTab = Screen.Premium },
-                            onStatsClick      = { currentTab = Screen.Stats },
-                            onSleepTimerClick = { showSleepTimer = true },
-                            onRescan          = { vm.scanMedia() },
-                            onGaplessChanged   = { vm.setGapless(it) },
+                            currentUser         = backendUser,
+                            isPremium           = isPremium,
+                            onSignIn            = onGoogleSignIn,
+                            onSignOut           = { backendVm.signOut() },
+                            isDark              = isDark,
+                            onToggleTheme       = vm::toggleTheme,
+                            onEqualizerClick    = { showEqualizer = true },
+                            onPremiumClick      = { currentTab = Screen.Premium },
+                            onStatsClick        = { currentTab = Screen.Stats },
+                            onSleepTimerClick   = { showSleepTimer = true },
+                            onRescan            = { vm.scanMedia() },
+                            onDrivingMode       = { drivingMode = true },
+                            initialGapless      = vm.store.getGapless(),
+                            initialSmartSkip    = vm.store.getSmartSkip(),
+                            initialCrossfade    = vm.store.getCrossfade(),
+                            initialVolumeNorm   = vm.store.prefs.getBoolean("vol_norm", false),
+                            onGaplessChanged    = { vm.setGapless(it) },
                             onSmartSkipChanged  = { vm.setSmartSkipEnabled(it) },
                             onVolumeNormChanged = { vm.setVolumeNorm(it) },
-                            onCrossfadeChanged = { vm.setCrossfade(it) },
+                            onCrossfadeChanged  = { vm.setCrossfade(it) },
+                            onDynColorChanged   = { vm.store.prefs.edit().putBoolean("dynamic_color", it).apply() },
                         )
                         Screen.Premium -> PremiumScreen(
                             onBack       = { currentTab = Screen.Home },
@@ -312,7 +315,7 @@ fun DeckRoot(vm: MainViewModel, backendVm: BackendViewModel, onGoogleSignIn: () 
             // ── Equalizer ─────────────────────────────────────────────
             AnimatedVisibility(visible = showEqualizer,
                 enter = slideInVertically { it }, exit = slideOutVertically { it }) {
-                Box(Modifier.fillMaxSize().background(DarkBg)) {
+                Box(Modifier.fillMaxSize().background(androidx.compose.material3.MaterialTheme.colorScheme.background)) {
                     EqualizerScreen(
                         eqState         = eqState,
                         onBandChanged   = { band, value -> vm.setEqBand(band, value) },
@@ -391,9 +394,10 @@ fun DeckRoot(vm: MainViewModel, backendVm: BackendViewModel, onGoogleSignIn: () 
                 enter = fadeIn(tween(200)), exit = fadeOut(tween(200))) {
                 videoSong?.let { song ->
                     VideoPlayerScreen(
-                        video  = song,
-                        player = vm.player.playerOrNull,
-                        onBack = { videoSong = null }
+                        video         = song,
+                        player        = vm.player.playerOrNull,
+                        onPauseMusic  = { if (vm.playback.value.isPlaying) vm.player.togglePlay() },
+                        onBack        = { videoSong = null }
                     )
                 }
             }

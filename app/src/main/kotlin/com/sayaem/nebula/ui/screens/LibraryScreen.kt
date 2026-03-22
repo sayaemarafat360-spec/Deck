@@ -37,6 +37,7 @@ fun LibraryScreen(
     onSongClick: (Song) -> Unit,
     onVideoClick: (Song) -> Unit,
     onMoreClick: (Song) -> Unit = {},
+    onMoreVideoClick: (Song) -> Unit = {},
     onPlayNext: (Song) -> Unit = {},
     onAddToQueue: (Song) -> Unit = {},
     onPlayPlaylist: (Playlist) -> Unit,
@@ -76,7 +77,7 @@ fun LibraryScreen(
 
         when (selectedTab) {
             0 -> SongsTab(songs, currentSong, isPlaying, onSongClick, onMoreClick, onPlayNext, onAddToQueue)
-            1 -> VideosTab(videos, onVideoClick)
+            1 -> VideosTab(videos, onVideoClick, onMoreVideoClick)
             2 -> AlbumsTab(songs, onSongClick)
             3 -> ArtistsTab(songs, onSongClick)
             4 -> PlaylistsTab(songs, playlists, onPlayPlaylist, onCreatePlaylist,
@@ -128,7 +129,7 @@ private fun SongsTab(songs: List<Song>, current: Song?, isPlaying: Boolean, onSo
 
 // ─── Videos ──────────────────────────────────────────────────────────
 @Composable
-private fun VideosTab(videos: List<Song>, onVideoClick: (Song) -> Unit) {
+private fun VideosTab(videos: List<Song>, onVideoClick: (Song) -> Unit, onMoreClick: (Song) -> Unit = {}) {
     LazyColumn(contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 160.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)) {
         if (videos.isEmpty()) {
@@ -150,12 +151,15 @@ private fun VideosTab(videos: List<Song>, onVideoClick: (Song) -> Unit) {
                             Text(video.durationFormatted, style = MaterialTheme.typography.labelSmall, color = Color.White)
                         }
                     }
-                    Column(Modifier.padding(14.dp).weight(1f)) {
+                    Column(Modifier.padding(start = 14.dp, top = 14.dp, bottom = 14.dp).weight(1f)) {
                         Text(video.title, style = MaterialTheme.typography.titleSmall,
                             color = TextPrimaryDark, maxLines = 2, overflow = TextOverflow.Ellipsis,
                             fontWeight = FontWeight.SemiBold)
                         Spacer(Modifier.height(4.dp))
                         Text(video.sizeFormatted, style = MaterialTheme.typography.bodySmall, color = TextTertiaryDark)
+                    }
+                    IconButton(onClick = { onMoreClick(video) }, modifier = Modifier.size(40.dp)) {
+                        Icon(Icons.Filled.MoreVert, null, tint = TextTertiaryDark, modifier = Modifier.size(18.dp))
                     }
                 }
             }

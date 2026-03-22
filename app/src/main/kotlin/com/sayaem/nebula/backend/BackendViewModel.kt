@@ -90,6 +90,11 @@ class BackendViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun handleGoogleSignInResult(result: ActivityResult) {
+        // User cancelled — don't crash
+        if (result.resultCode != android.app.Activity.RESULT_OK) {
+            _message.value = if (result.resultCode == 0) "Sign-in cancelled" else null
+            return
+        }
         viewModelScope.launch {
             try {
                 _isSyncing.value = true
