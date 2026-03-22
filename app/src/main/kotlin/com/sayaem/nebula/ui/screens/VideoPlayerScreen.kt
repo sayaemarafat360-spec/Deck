@@ -1,9 +1,5 @@
 package com.sayaem.nebula.ui.screens
 
-import androidx.compose.ui.*
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.draw.*
-import androidx.compose.ui.geometry.Offset
 import android.app.Activity
 import android.app.PictureInPictureParams
 import android.content.pm.ActivityInfo
@@ -12,29 +8,24 @@ import android.util.Rational
 import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.*
-import androidx.compose.foundation.gestures.transformable
-import androidx.compose.foundation.gestures.rememberTransformableState
-import android.content.ContentValues
-import android.provider.MediaStore
-import android.os.Environment
-import android.graphics.Bitmap
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.*
+import androidx.compose.ui.graphics.*
 import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.view.drawToBitmap
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
@@ -42,197 +33,105 @@ import com.sayaem.nebula.data.models.Song
 import com.sayaem.nebula.ui.theme.*
 import kotlinx.coroutines.delay
 
-
-
-
 @Composable
 fun VideoPlayerScreen(
     video: Song,
-    player: ExoPlayer?,
+    player: ExoPlayer?,      // unused — we create our own
     onBack: () -> Unit,
     onPauseMusic: () -> Unit = {},
 ) {
     val context  = LocalContext.current
     val activity = context as? Activity
 
-    // Create a dedicated ExoPlayer for video — never share with music player
+    // Dedicated ExoPlayer using APPLICATION context — critical for content:// URIs
     val videoPlayer = remember {
-        ExoPlayer.Builder(context)
-            .setAudioAttributes(
-                androidx.media3.common.AudioAttributes.Builder()
-                    .setUsage(androidx.media3.common.C.USAGE_MEDIA)
-                    .setContentType(androidx.media3.common.C.AUDIO_CONTENT_TYPE_MOVIE)
-                    .build(), true
-            )
-            .setHandleAudioBecomingNoisy(true)
-            .build()
+        ExoPlayer.Builder(context.applicationContext).build()
     }
+
     DisposableEffect(Unit) {
-        onDispose { videoPlayer.release() }
-    }
-
-    var showControls    by remember { mutableStateOf(true) }
-    var brightness      by remember { mutableStateOf(0.5f) }
-    var volume          by remember { mutableStateOf(videoPlayer.volume) }
-    var isPlaying       by remember { mutableStateOf(videoPlayer.isPlaying) }
-    var aspectIdx       by remember { mutableStateOf(0) }
-    var playerViewRef   by remember { mutableStateOf<PlayerView?>(null) }
-    var showBrightness  by remember { mutableStateOf(false) }
-    var showVolume      by remember { mutableStateOf(false) }
-    var seekLabel       by remember { mutableStateOf("") }
-    var showSeekLabel   by remember { mutableStateOf(false) }
-    var isLocked        by remember { mutableStateOf(false) }
-    var showSubtitles   by remember { mutableStateOf(true) }
-    var videoScale      by remember { mutableStateOf(1f) }
-    var videoOffsetX    by remember { mutableStateOf(0f) }
-    var videoOffsetY    by remember { mutableStateOf(0f) }
-    var videoSpeed      by remember { mutableStateOf(1.0f) }
-    var showSpeed      by remember { mutableStateOf(false) }
-
-    val transformState  = rememberTransformableState { zoomChange, offsetChange, _ ->
-        videoScale = (videoScale * zoomChange).coerceIn(1f, 4f)
-        if (videoScale > 1f) {
-            videoOffsetX += offsetChange.x
-            videoOffsetY += offsetChange.y
-        } else {
-            videoOffsetX = 0f; videoOffsetY = 0f
-        }
-    }
-
-    // Detect .srt file alongside the video
-    val srtPath = remember(video.filePath) {
-        val base = video.filePath.substringBeforeLast(".")
-        listOf("$base.srt", "$base.SRT").firstOrNull { java.io.File(it).exists() }
-    }
-
-    var swipeDownY      by remember { mutableStateOf(0f) }
-
-    val aspectLabels = listOf("16:9", "4:3", "Fit", "Zoom")
-    val aspectModes  = listOf(
-        AspectRatioFrameLayout.RESIZE_MODE_FIT,
-        AspectRatioFrameLayout.RESIZE_MODE_FIXED_HEIGHT,
-        AspectRatioFrameLayout.RESIZE_MODE_FIT,
-        AspectRatioFrameLayout.RESIZE_MODE_ZOOM,
-    )
-
-    // Pause music, force landscape, keep screen on
-    LaunchedEffect(Unit) {
+        // Force landscape, keep screen on
         onPauseMusic()
         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-    }
 
-    // Real screen brightness
-    LaunchedEffect(videoSpeed) {
-        videoPlayer.setPlaybackSpeed(videoSpeed)
-    }
+        // Load and play immediately here — not in LaunchedEffect
+        // This ensures the player is ready when the surface attaches
+        val item = MediaItem.fromUri(video.uri)
+        videoPlayer.setMediaItem(item)
+        videoPlayer.prepare()
+        videoPlayer.playWhenReady = true
 
-    LaunchedEffect(brightness) {
-        activity?.window?.attributes = activity?.window?.attributes?.also {
-            it.screenBrightness = brightness.coerceIn(0.01f, 1.0f)
+        onDispose {
+            videoPlayer.stop()
+            videoPlayer.release()
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
     }
 
-    // Auto-hide controls after 3s
-    LaunchedEffect(showControls, isLocked) {
-        if (showControls && !isLocked) {
-            delay(3000)
+    BackHandler { onBack() }
+
+    var showControls by remember { mutableStateOf(true) }
+    var isPlaying    by remember { mutableStateOf(true) }
+    var speed        by remember { mutableStateOf(1.0f) }
+    var showSpeed    by remember { mutableStateOf(false) }
+    var aspectIdx    by remember { mutableStateOf(0) }
+
+    val aspectModes = listOf(
+        AspectRatioFrameLayout.RESIZE_MODE_FIT,
+        AspectRatioFrameLayout.RESIZE_MODE_FILL,
+        AspectRatioFrameLayout.RESIZE_MODE_ZOOM,
+    )
+    val aspectLabels = listOf("Fit", "Fill", "Zoom")
+
+    // Auto-hide controls
+    LaunchedEffect(showControls) {
+        if (showControls) {
+            delay(3500)
             showControls = false
         }
     }
 
-    // Hide brightness/volume indicators
-    LaunchedEffect(showBrightness, showVolume) {
-        if (showBrightness || showVolume) {
-            delay(1500)
-            showBrightness = false
-            showVolume     = false
-        }
-    }
-
-    BackHandler {
-        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-        activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        onBack()
-    }
-
-    Box(Modifier.fillMaxSize().background(Color.Black)) {
-
-        // Load video URI after composition via LaunchedEffect
-        LaunchedEffect(video.uri) {
-            val mediaItem = if (srtPath != null) {
-                val subConfig = androidx.media3.common.MediaItem.SubtitleConfiguration.Builder(
-                    android.net.Uri.fromFile(java.io.File(srtPath))
-                ).setMimeType(androidx.media3.common.MimeTypes.APPLICATION_SUBRIP)
-                 .setSelectionFlags(androidx.media3.common.C.SELECTION_FLAG_DEFAULT)
-                 .build()
-                androidx.media3.common.MediaItem.Builder()
-                    .setUri(video.uri)
-                    .setSubtitleConfigurations(listOf(subConfig))
-                    .build()
-            } else {
-                androidx.media3.common.MediaItem.fromUri(video.uri)
-            }
-            videoPlayer.clearMediaItems()
-            videoPlayer.setMediaItem(mediaItem)
-            videoPlayer.prepare()
-            videoPlayer.play()
-        }
-
-        // ── Video surface ──────────────────────────────────────────────
+    Box(
+        Modifier.fillMaxSize().background(Color.Black)
+    ) {
+        // ── PlayerView — NO graphicsLayer, NO transformable modifier ──
+        // SurfaceView renders directly to screen. Any layer transformation breaks it.
+        // Use SURFACE_TYPE_TEXTURE_VIEW for compatibility with Compose layering.
         AndroidView(
             factory = { ctx ->
                 PlayerView(ctx).apply {
                     this.player = videoPlayer
-                    useController = false
+                    useController  = false
                     setBackgroundColor(android.graphics.Color.BLACK)
                     resizeMode = aspectModes[0]
-                    playerViewRef = this
+                    // CRITICAL: Use TextureView instead of SurfaceView
+                    // SurfaceView punches through Compose layers and can't be transformed
+                    // TextureView renders into the Compose layer correctly
+                    setSurfaceType(PlayerView.SURFACE_TYPE_TEXTURE_VIEW)
                 }
             },
             update = { pv ->
                 pv.resizeMode = aspectModes[aspectIdx]
-                // speed is applied directly to ExoPlayer, not PlayerView
             },
-            modifier = Modifier
-                .fillMaxSize()
-                .transformable(state = transformState)
-                .graphicsLayer(
-                    scaleX         = videoScale,
-                    scaleY         = videoScale,
-                    translationX   = videoOffsetX,
-                    translationY   = videoOffsetY,
-                )
+            modifier = Modifier.fillMaxSize()
         )
 
-        // ── Gesture layer ──────────────────────────────────────────────
-        var gestureStartX by remember { mutableStateOf(0f) }
-        var gestureStartY by remember { mutableStateOf(0f) }
-        var gestureStartBrightness by remember { mutableStateOf(0f) }
-        var gestureStartVolume by remember { mutableStateOf(0f) }
-        var doubleTapPos by remember { mutableStateOf<Offset?>(null) }
+        // ── Gesture overlay ────────────────────────────────────────────
         var lastTap by remember { mutableStateOf(0L) }
-
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .pointerInput(isLocked) {
-                    if (isLocked) return@pointerInput
+            Modifier.fillMaxSize()
+                .pointerInput(Unit) {
                     detectTapGestures(
                         onTap = {
                             val now = System.currentTimeMillis()
-                            if (now - lastTap < 300) {
-                                // Double tap — seek ±10s
-                                val screenW = size.width
-                                if (it.x < screenW / 2) {
+                            if (now - lastTap < 350) {
+                                // Double-tap seek
+                                if (it.x < size.width / 2) {
                                     videoPlayer.seekTo((videoPlayer.currentPosition - 10000).coerceAtLeast(0))
-                                    seekLabel = "- 10s"
                                 } else {
                                     videoPlayer.seekTo(videoPlayer.currentPosition + 10000)
-                                    seekLabel = "+ 10s"
                                 }
-                                showSeekLabel = true
-                                doubleTapPos  = it
                             } else {
                                 showControls = !showControls
                             }
@@ -240,150 +139,53 @@ fun VideoPlayerScreen(
                         }
                     )
                 }
-                .pointerInput(isLocked) {
-                    if (isLocked) return@pointerInput
-                    detectDragGestures(
-                        onDragStart = { pos ->
-                            gestureStartX          = pos.x
-                            gestureStartY          = pos.y
-                            gestureStartBrightness = brightness
-                            gestureStartVolume     = volume
-                        },
-                        onDrag = { _, drag ->
-                            val screenW = size.width
-                            val isLeftSide = gestureStartX < screenW / 2
-                            val delta = -drag.y / size.height
-
-                            if (isLeftSide) {
-                                brightness = (gestureStartBrightness + delta * 1.5f).coerceIn(0.01f, 1.0f)
-                                showBrightness = true
-                            } else {
-                                volume = (gestureStartVolume + delta * 1.5f).coerceIn(0f, 1f)
-                                videoPlayer.volume = volume
-                                showVolume = true
-                            }
-                        }
-                    )
-                }
         )
 
-        // ── Seek label flash ───────────────────────────────────────────
-        if (showSeekLabel) {
-            LaunchedEffect(showSeekLabel) {
-                delay(800)
-                showSeekLabel = false
-            }
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Box(
-                    Modifier.clip(RoundedCornerShape(12.dp))
-                        .background(Color.Black.copy(0.6f))
-                        .padding(horizontal = 24.dp, vertical = 14.dp)
-                ) {
-                    Text(seekLabel, style = MaterialTheme.typography.headlineMedium,
-                        color = Color.White, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-
-        // ── Lock overlay ───────────────────────────────────────────────
-        if (isLocked) {
-            Box(Modifier.fillMaxSize().clickable { showControls = !showControls })
-            AnimatedVisibility(visible = showControls, enter = fadeIn(), exit = fadeOut(),
-                modifier = Modifier.align(Alignment.CenterStart).padding(start = 20.dp)) {
-                IconButton(onClick = { isLocked = false }) {
-                    Icon(Icons.Filled.LockOpen, null, tint = Color.White,
-                        modifier = Modifier.size(28.dp))
-                }
-            }
-            return@Box
-        }
-
-        // ── Controls overlay ───────────────────────────────────────────
-        AnimatedVisibility(visible = showControls,
-            enter = fadeIn(tween(200)), exit = fadeOut(tween(300))) {
+        // ── Controls ───────────────────────────────────────────────────
+        AnimatedVisibility(
+            visible = showControls,
+            enter   = fadeIn(tween(150)),
+            exit    = fadeOut(tween(200)),
+            modifier = Modifier.fillMaxSize()
+        ) {
             Box(
-                Modifier.fillMaxSize().background(
-                    Brush.verticalGradient(listOf(
-                        Color.Black.copy(0.75f), Color.Transparent,
-                        Color.Transparent, Color.Black.copy(0.85f)
+                Modifier.fillMaxSize()
+                    .background(Brush.verticalGradient(
+                        listOf(Color.Black.copy(.7f), Color.Transparent, Color.Black.copy(.8f))
                     ))
-                ).clickable { showControls = false }
             ) {
-                // ── Top bar ───────────────────────────────────────────
+                // Top bar
                 Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)
-                        .statusBarsPadding(),
+                    Modifier.fillMaxWidth().statusBarsPadding()
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = {
-                        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-                        activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-                        onBack()
-                    }) {
+                    IconButton(onClick = onBack) {
                         Icon(Icons.Filled.ArrowBack, null, tint = Color.White)
                     }
-                    Text(video.title, style = MaterialTheme.typography.titleMedium,
-                        color = Color.White, fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
-                        maxLines = 1)
-
-                    // Aspect ratio
+                    Text(
+                        video.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
+                        maxLines = 1
+                    )
                     TextButton(onClick = { aspectIdx = (aspectIdx + 1) % aspectLabels.size }) {
                         Text(aspectLabels[aspectIdx], color = Color.White,
                             style = MaterialTheme.typography.labelMedium)
                     }
-
-                    // Subtitle toggle (only show if .srt exists)
-                    if (srtPath != null) {
-                        IconButton(onClick = { showSubtitles = !showSubtitles }) {
-                            Icon(
-                                if (showSubtitles) Icons.Filled.ClosedCaption
-                                else Icons.Filled.ClosedCaptionDisabled,
-                                null,
-                                tint = if (showSubtitles) NebulaViolet else Color.White
-                            )
-                        }
-                    }
-
-                    // Lock
-                    IconButton(onClick = { isLocked = true; showControls = false }) {
-                        Icon(Icons.Filled.Lock, null, tint = Color.White)
-                    }
-
-                    // Screenshot
-                    IconButton(onClick = {
-                        try {
-                            val view = playerViewRef ?: return@IconButton
-                            val bmp = view.drawToBitmap()
-                            val values = ContentValues().apply {
-                                put(MediaStore.Images.Media.DISPLAY_NAME, "deck_screenshot_${System.currentTimeMillis()}.jpg")
-                                put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
-                                put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/Deck")
-                            }
-                            val uri = context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
-                            uri?.let { u ->
-                                context.contentResolver.openOutputStream(u)?.use { out ->
-                                    bmp.compress(Bitmap.CompressFormat.JPEG, 95, out)
-                                }
-                            }
-                        } catch (_: Exception) {}
-                    }) {
-                        Icon(Icons.Filled.CameraAlt, null, tint = Color.White)
-                    }
-
-                    // Speed
                     TextButton(onClick = { showSpeed = true }) {
-                        Text("${videoSpeed}×", color = Color.White,
+                        Text("${speed}×", color = Color.White,
                             style = MaterialTheme.typography.labelMedium)
                     }
-
-                    // PiP
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         IconButton(onClick = {
                             try {
-                                val params = PictureInPictureParams.Builder()
-                                    .setAspectRatio(Rational(16, 9)).build()
-                                activity?.enterPictureInPictureMode(params)
+                                activity?.enterPictureInPictureMode(
+                                    PictureInPictureParams.Builder()
+                                        .setAspectRatio(Rational(16, 9)).build()
+                                )
                             } catch (_: Exception) {}
                         }) {
                             Icon(Icons.Filled.PictureInPicture, null, tint = Color.White)
@@ -391,133 +193,84 @@ fun VideoPlayerScreen(
                     }
                 }
 
-                // ── Center controls ───────────────────────────────────
+                // Center play/pause + seek
                 Row(
                     Modifier.align(Alignment.Center),
-                    horizontalArrangement = Arrangement.spacedBy(40.dp),
+                    horizontalArrangement = Arrangement.spacedBy(48.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = {
                         videoPlayer.seekTo((videoPlayer.currentPosition - 10000).coerceAtLeast(0))
-                    }, modifier = Modifier.size(56.dp)) {
+                    }, modifier = Modifier.size(52.dp)) {
                         Icon(Icons.Filled.Replay10, null, tint = Color.White,
-                            modifier = Modifier.size(40.dp))
+                            modifier = Modifier.size(38.dp))
                     }
-
                     Box(
-                        Modifier.size(70.dp).clip(CircleShape)
-                            .background(Color.White.copy(0.2f))
-                            .border(2.dp, Color.White.copy(0.5f), CircleShape)
+                        Modifier.size(68.dp).clip(CircleShape)
+                            .background(Color.White.copy(.2f))
+                            .border(2.dp, Color.White.copy(.6f), CircleShape)
                             .clickable {
-                                if (videoPlayer.isPlaying) videoPlayer.pause() else videoPlayer.play()
-                                isPlaying = videoPlayer.isPlaying
+                                if (videoPlayer.isPlaying) {
+                                    videoPlayer.pause(); isPlaying = false
+                                } else {
+                                    videoPlayer.play(); isPlaying = true
+                                }
                             },
                         contentAlignment = Alignment.Center
                     ) {
-                        // Poll player state
-                        val playing by produceState(videoPlayer.isPlaying) {
-                            while (true) { value = videoPlayer.isPlaying; delay(200) }
-                        }
                         Icon(
-                            if (playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                            null, tint = Color.White, modifier = Modifier.size(34.dp)
+                            if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                            null, tint = Color.White, modifier = Modifier.size(32.dp)
                         )
                     }
-
                     IconButton(onClick = {
                         videoPlayer.seekTo(videoPlayer.currentPosition + 10000)
-                    }, modifier = Modifier.size(56.dp)) {
+                    }, modifier = Modifier.size(52.dp)) {
                         Icon(Icons.Filled.Forward10, null, tint = Color.White,
-                            modifier = Modifier.size(40.dp))
+                            modifier = Modifier.size(38.dp))
                     }
                 }
 
-                // ── Bottom seek bar ───────────────────────────────────
+                // Bottom seek bar
                 Column(
                     Modifier.fillMaxWidth().align(Alignment.BottomCenter)
-                        .padding(horizontal = 16.dp).navigationBarsPadding().padding(bottom = 8.dp)
+                        .navigationBarsPadding().padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
-                    val position by produceState(videoPlayer.currentPosition) {
-                        while (true) { value = videoPlayer.currentPosition; delay(300) }
+                    val pos by produceState(0L) {
+                        while (true) {
+                            value = videoPlayer.currentPosition
+                            delay(500)
+                        }
                     }
-                    val duration = videoPlayer.duration.coerceAtLeast(1L)
-                    val progress = (position.toFloat() / duration).coerceIn(0f, 1f)
-
-                    Row(Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(formatVideoMs(position), style = MaterialTheme.typography.labelMedium,
-                            color = Color.White.copy(0.8f))
-                        Text(formatVideoMs(duration), style = MaterialTheme.typography.labelMedium,
-                            color = Color.White.copy(0.8f))
+                    val dur = videoPlayer.duration.coerceAtLeast(1L)
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(formatVideoMs(pos), style = MaterialTheme.typography.labelMedium,
+                            color = Color.White.copy(.8f))
+                        Text(formatVideoMs(dur), style = MaterialTheme.typography.labelMedium,
+                            color = Color.White.copy(.8f))
                     }
                     Slider(
-                        value    = progress,
-                        onValueChange = { videoPlayer.seekTo((it * duration).toLong()) },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors   = SliderDefaults.colors(
+                        value         = (pos.toFloat() / dur).coerceIn(0f, 1f),
+                        onValueChange = { videoPlayer.seekTo((it * dur).toLong()) },
+                        modifier      = Modifier.fillMaxWidth(),
+                        colors        = SliderDefaults.colors(
                             activeTrackColor   = NebulaViolet,
                             thumbColor         = Color.White,
-                            inactiveTrackColor = Color.White.copy(0.3f)
+                            inactiveTrackColor = Color.White.copy(.3f)
                         )
                     )
-                }
-
-                // ── Brightness indicator (left) ───────────────────────
-                AnimatedVisibility(visible = showBrightness,
-                    enter = fadeIn(), exit = fadeOut(),
-                    modifier = Modifier.align(Alignment.CenterStart).padding(start = 24.dp)) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Icon(Icons.Filled.BrightnessHigh, null, tint = Color.White,
-                            modifier = Modifier.size(20.dp))
-                        Box(
-                            Modifier.width(4.dp).height(100.dp)
-                                .clip(RoundedCornerShape(2.dp))
-                                .background(Color.White.copy(0.2f))
-                        ) {
-                            Box(Modifier.fillMaxWidth().fillMaxHeight(brightness)
-                                .align(Alignment.BottomCenter)
-                                .background(Color.White))
-                        }
-                        Text("${(brightness * 100).toInt()}%",
-                            style = MaterialTheme.typography.labelSmall, color = Color.White)
-                    }
-                }
-
-                // ── Volume indicator (right) ──────────────────────────
-                AnimatedVisibility(visible = showVolume,
-                    enter = fadeIn(), exit = fadeOut(),
-                    modifier = Modifier.align(Alignment.CenterEnd).padding(end = 24.dp)) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Icon(Icons.Filled.VolumeUp, null, tint = Color.White,
-                            modifier = Modifier.size(20.dp))
-                        Box(
-                            Modifier.width(4.dp).height(100.dp)
-                                .clip(RoundedCornerShape(2.dp))
-                                .background(Color.White.copy(0.2f))
-                        ) {
-                            Box(Modifier.fillMaxWidth().fillMaxHeight(volume)
-                                .align(Alignment.BottomCenter)
-                                .background(NebulaViolet))
-                        }
-                        Text("${(volume * 100).toInt()}%",
-                            style = MaterialTheme.typography.labelSmall, color = Color.White)
-                    }
                 }
             }
         }
     }
 
-    // Speed picker for video
     if (showSpeed) {
         SpeedPickerSheet(
-            current   = videoSpeed,
-            onSelect  = { s ->
-                videoSpeed = s
-                videoPlayer.setPlaybackSpeed(s)
-                showSpeed = false
-            },
+            current   = speed,
+            onSelect  = { s -> speed = s; videoPlayer.setPlaybackSpeed(s); showSpeed = false },
             onDismiss = { showSpeed = false }
         )
     }

@@ -91,9 +91,10 @@ class BackendViewModel(app: Application) : AndroidViewModel(app) {
 
     fun handleGoogleSignInResult(result: ActivityResult) {
         if (result.resultCode != android.app.Activity.RESULT_OK) {
-            // RESULT_CANCELED usually means SHA-1 fingerprint mismatch in Firebase
-            // or user cancelled. Either way, don't crash.
-            _message.value = null
+            if (result.resultCode == 0) {
+                // resultCode 0 = RESULT_CANCELED = SHA-1 mismatch or user cancelled
+                // Show nothing if user just pressed back
+            }
             return
         }
         viewModelScope.launch {
@@ -115,10 +116,10 @@ class BackendViewModel(app: Application) : AndroidViewModel(app) {
                     _message.value = "Sign-in failed — check Firebase SHA-1"
                 }
             } catch (e: ApiException) {
-                // statusCode 10 = developer error (SHA-1 mismatch)
-                // statusCode 12501 = user cancelled
-                if (e.statusCode != 12501) {
-                    _message.value = null // silent fail, don't confuse user
+                when (e.statusCode) {
+                    12501 -> { /* user cancelled — silent */ }
+                    10    -> _message.value = "Sign-in error: add SHA-1 to Firebase"
+                    else  -> _message.value = "Sign-in error (${e.statusCode})"
                 }
             } catch (e: Exception) {
                 _message.value = null

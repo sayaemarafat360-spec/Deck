@@ -109,6 +109,7 @@ fun DeckRoot(vm: MainViewModel, backendVm: BackendViewModel, onGoogleSignIn: () 
     var showSleepTimer by remember { mutableStateOf(false) }
     var showSpeed      by remember { mutableStateOf(false) }
     var videoSong      by remember { mutableStateOf<Song?>(null) }
+    var showSplash    by remember { mutableStateOf(true) }
     var showOnboarding by remember { mutableStateOf<Boolean>(!vm.store.isOnboardingDone()) }
 
     // Pull cloud data once on startup if signed in
@@ -163,6 +164,12 @@ fun DeckRoot(vm: MainViewModel, backendVm: BackendViewModel, onGoogleSignIn: () 
             // Back nav: non-Home tab → go to Home. Home tab → swallow (prevent exit)
             BackHandler(enabled = tabBackStack.size > 1) { tabBackStack.removeLastOrNull() }
             BackHandler(enabled = tabBackStack.size <= 1) { /* on Home root — swallow to prevent exit */ }
+
+            // ── Splash ───────────────────────────────────────────────
+            if (showSplash) {
+                DeckSplashScreen(onFinished = { showSplash = false })
+                return@Box
+            }
 
             // ── Onboarding ────────────────────────────────────────────
             if (showOnboarding) {
