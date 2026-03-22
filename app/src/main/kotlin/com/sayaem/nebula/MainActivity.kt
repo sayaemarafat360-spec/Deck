@@ -99,12 +99,9 @@ fun DeckRoot(vm: MainViewModel, backendVm: BackendViewModel, onGoogleSignIn: () 
     // ── Navigation state ──────────────────────────────────────────────
     // Real back stack — stores navigation history
     val tabBackStack = remember { mutableStateListOf<Screen>(Screen.Home) }
-    val currentTab get() = tabBackStack.last()
-    fun navigateTo(screen: Screen) {
+    val currentTab by remember { androidx.compose.runtime.derivedStateOf { tabBackStack.last() } }
+    val navigateTo = { screen: Screen ->
         if (tabBackStack.last() != screen) tabBackStack.add(screen)
-    }
-    fun navigateBack(): Boolean {
-        return if (tabBackStack.size > 1) { tabBackStack.removeLast(); true } else false
     }
     var showNowPlaying by remember { mutableStateOf(false) }
     var showEqualizer  by remember { mutableStateOf(false) }

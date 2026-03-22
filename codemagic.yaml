@@ -13,17 +13,20 @@ workflows:
         - $HOME/.gradle/wrapper
 
     scripts:
-      - name: Get Gradle wrapper jar and print SHA-1
+      - name: Get Gradle wrapper jar and set fixed keystore
         script: |
           mkdir -p gradle/wrapper
           curl -fL \
             "https://github.com/gradle/gradle/raw/v8.4.0/gradle/wrapper/gradle-wrapper.jar" \
             -o gradle/wrapper/gradle-wrapper.jar
           chmod +x gradlew
-          echo "=== DEBUG KEYSTORE SHA-1 (add this to Firebase Console) ==="
+          # Use our bundled debug keystore so SHA-1 is always predictable
+          mkdir -p ~/.android
+          cp keystore/debug.keystore ~/.android/debug.keystore
+          echo "=== Using fixed debug keystore SHA-1: ==="
           keytool -list -v -keystore ~/.android/debug.keystore \
             -alias androiddebugkey -storepass android -keypass android 2>/dev/null \
-            | grep -E "SHA1|SHA256" || echo "Keystore not found yet — will appear after first build"
+            | grep -E "SHA1|SHA256"
 
       - name: Build debug APK
         script: ./gradlew :app:assembleDebug --no-daemon
@@ -45,17 +48,20 @@ workflows:
         - $HOME/.gradle/wrapper
 
     scripts:
-      - name: Get Gradle wrapper jar and print SHA-1
+      - name: Get Gradle wrapper jar and set fixed keystore
         script: |
           mkdir -p gradle/wrapper
           curl -fL \
             "https://github.com/gradle/gradle/raw/v8.4.0/gradle/wrapper/gradle-wrapper.jar" \
             -o gradle/wrapper/gradle-wrapper.jar
           chmod +x gradlew
-          echo "=== DEBUG KEYSTORE SHA-1 (add this to Firebase Console) ==="
+          # Use our bundled debug keystore so SHA-1 is always predictable
+          mkdir -p ~/.android
+          cp keystore/debug.keystore ~/.android/debug.keystore
+          echo "=== Using fixed debug keystore SHA-1: ==="
           keytool -list -v -keystore ~/.android/debug.keystore \
             -alias androiddebugkey -storepass android -keypass android 2>/dev/null \
-            | grep -E "SHA1|SHA256" || echo "Keystore not found yet — will appear after first build"
+            | grep -E "SHA1|SHA256"
 
       - name: Build release APK
         script: ./gradlew :app:assembleRelease --no-daemon
