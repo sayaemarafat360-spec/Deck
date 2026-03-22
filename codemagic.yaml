@@ -1,6 +1,39 @@
 workflows:
+  android-debug:
+    name: Deck — Debug APK
+    max_build_duration: 30
+    instance_type: mac_mini_m2
+
+    environment:
+      java: 17
+
+    cache:
+      cache_paths:
+        - $HOME/.gradle/caches
+        - $HOME/.gradle/wrapper
+
+    scripts:
+      - name: Setup Gradle wrapper
+        script: |
+          mkdir -p gradle/wrapper
+          # Download gradle-wrapper.jar from services.gradle.org
+          GRADLE_VERSION=8.4
+          DIST_URL="https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip"
+          curl -fL "$DIST_URL" -o /tmp/gradle.zip
+          unzip -p /tmp/gradle.zip "gradle-${GRADLE_VERSION}/lib/gradle-wrapper.jar" \
+            > gradle/wrapper/gradle-wrapper.jar 2>/dev/null || \
+          unzip -j /tmp/gradle.zip "*gradle-wrapper*.jar" -d /tmp/gwjar && \
+            cp /tmp/gwjar/*.jar gradle/wrapper/gradle-wrapper.jar
+          chmod +x gradlew
+
+      - name: Build debug APK
+        script: ./gradlew :app:assembleDebug --no-daemon --stacktrace
+
+    artifacts:
+      - app/build/outputs/apk/debug/*.apk
+
   android-release:
-    name: NEBULA Native — Release APK
+    name: Deck — Release APK
     max_build_duration: 60
     instance_type: mac_mini_m2
 
@@ -13,18 +46,23 @@ workflows:
         - $HOME/.gradle/wrapper
 
     scripts:
-      - name: Download Gradle wrapper jar
+      - name: Setup Gradle wrapper
         script: |
           mkdir -p gradle/wrapper
-          curl -fL "https://github.com/gradle/gradle/raw/v8.4.0/gradle/wrapper/gradle-wrapper.jar" \
-            -o gradle/wrapper/gradle-wrapper.jar
+          GRADLE_VERSION=8.4
+          DIST_URL="https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip"
+          curl -fL "$DIST_URL" -o /tmp/gradle.zip
+          unzip -p /tmp/gradle.zip "gradle-${GRADLE_VERSION}/lib/gradle-wrapper.jar" \
+            > gradle/wrapper/gradle-wrapper.jar 2>/dev/null || \
+          unzip -j /tmp/gradle.zip "*gradle-wrapper*.jar" -d /tmp/gwjar && \
+            cp /tmp/gwjar/*.jar gradle/wrapper/gradle-wrapper.jar
           chmod +x gradlew
 
       - name: Build release APK
-        script: ./gradlew assembleRelease --no-daemon
+        script: ./gradlew :app:assembleRelease --no-daemon
 
       - name: Build App Bundle
-        script: ./gradlew bundleRelease --no-daemon
+        script: ./gradlew :app:bundleRelease --no-daemon
 
     artifacts:
       - app/build/outputs/apk/release/*.apk
@@ -37,25 +75,3 @@ workflows:
         notify:
           success: true
           failure: true
-
-  android-debug:
-    name: NEBULA Native — Debug APK
-    max_build_duration: 30
-    instance_type: mac_mini_m2
-
-    environment:
-      java: 17
-
-    scripts:
-      - name: Download Gradle wrapper jar
-        script: |
-          mkdir -p gradle/wrapper
-          curl -fL "https://github.com/gradle/gradle/raw/v8.4.0/gradle/wrapper/gradle-wrapper.jar" \
-            -o gradle/wrapper/gradle-wrapper.jar
-          chmod +x gradlew
-
-      - name: Build debug APK
-        script: ./gradlew assembleDebug --no-daemon
-
-    artifacts:
-      - app/build/outputs/apk/debug/*.apk
