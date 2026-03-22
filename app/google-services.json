@@ -12,7 +12,20 @@
           "package_name": "com.sayaem.nebula"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "757949659304-t3uqe34qmd85odm60nfagq5d40rmf6jk.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sayaem.nebula",
+            "certificate_hash": "fa9fb7e38c338ada4a221124bf316f929efa4760"
+          }
+        },
+        {
+          "client_id": "757949659304-vqc4rvipgkc63kt5sr5gndjnfrodeat1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBVo6jRZxD9XQdcaw7cs5qi4BfGLUQGqDs"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "757949659304-vqc4rvipgkc63kt5sr5gndjnfrodeat1.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

@@ -80,13 +80,18 @@ class BackendViewModel(app: Application) : AndroidViewModel(app) {
     // NOTE: You need to add a Web OAuth client in Firebase Console first:
     // Authentication → Sign-in method → Google → enable → copy Web client ID
     // Then add to strings.xml: <string name="default_web_client_id">YOUR_WEB_CLIENT_ID</string>
-    fun getGoogleSignInIntent(): Intent {
-        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(getApplication<Application>()
-                .getString(R.string.default_web_client_id))
-            .requestEmail()
-            .build()
-        return GoogleSignIn.getClient(getApplication(), gso).signInIntent
+    fun getGoogleSignInIntent(): Intent? {
+        return try {
+            val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken(getApplication<Application>()
+                    .getString(R.string.default_web_client_id))
+                .requestEmail()
+                .build()
+            GoogleSignIn.getClient(getApplication(), gso).signInIntent
+        } catch (e: Exception) {
+            _message.value = "Google Sign-In not configured yet. Add SHA-1 to Firebase Console."
+            null
+        }
     }
 
     fun handleGoogleSignInResult(result: ActivityResult) {

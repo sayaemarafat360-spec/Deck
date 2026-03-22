@@ -48,28 +48,32 @@ import kotlinx.coroutines.delay
 @Composable
 fun VideoPlayerScreen(
     video: Song,
-    player: ExoPlayer?,
+    player: ExoPlayer?,   // kept for API compat but we use our own
     onBack: () -> Unit,
 ) {
     val context  = LocalContext.current
     val activity = context as? Activity
 
-    if (player == null) {
-        Box(Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(Icons.Filled.Error, null, tint = Color.White.copy(0.5f), modifier = Modifier.size(48.dp))
-                Spacer(Modifier.height(12.dp))
-                Text("Player loading...", color = Color.White.copy(0.7f))
-            }
-        }
-    BackHandler { onBack() }
-        return
+    // Create a dedicated ExoPlayer for video — never share with music player
+    val videoPlayer = remember {
+        ExoPlayer.Builder(context)
+            .setAudioAttributes(
+                androidx.media3.common.AudioAttributes.Builder()
+                    .setUsage(androidx.media3.common.C.USAGE_MEDIA)
+                    .setContentType(androidx.media3.common.C.AUDIO_CONTENT_TYPE_MOVIE)
+                    .build(), true
+            )
+            .setHandleAudioBecomingNoisy(true)
+            .build()
+    }
+    DisposableEffect(Unit) {
+        onDispose { videoPlayer.release() }
     }
 
     var showControls    by remember { mutableStateOf(true) }
     var brightness      by remember { mutableStateOf(0.5f) }
-    var volume          by remember { mutableStateOf(player.volume) }
-    var isPlaying       by remember { mutableStateOf(player.isPlaying) }
+    var volume          by remember { mutableStateOf(videoPlayer.volume) }
+    var isPlaying       by remember { mutableStateOf(videoPlayer.isPlaying) }
     var aspectIdx       by remember { mutableStateOf(0) }
     var playerViewRef   by remember { mutableStateOf<PlayerView?>(null) }
     var showBrightness  by remember { mutableStateOf(false) }
@@ -118,7 +122,7 @@ fun VideoPlayerScreen(
 
     // Real screen brightness
     LaunchedEffect(videoSpeed) {
-        player?.setPlaybackSpeed(videoSpeed)
+        videoPlayer.setPlaybackSpeed(videoSpeed)
     }
 
     LaunchedEffect(brightness) {
@@ -156,28 +160,30 @@ fun VideoPlayerScreen(
         AndroidView(
             factory = { ctx ->
                 PlayerView(ctx).apply {
-                    this.player = player
+                    this.player = videoPlayer
                     useController = false
                     setBackgroundColor(android.graphics.Color.BLACK)
                     resizeMode = aspectModes[0]
                     playerViewRef = this
 
-                    // Load subtitle track if .srt exists
-                    srtPath?.let { path ->
+                    // Always load the video URI
+                    val mediaItem = if (srtPath != null) {
                         val subConfig = androidx.media3.common.MediaItem.SubtitleConfiguration.Builder(
-                            android.net.Uri.fromFile(java.io.File(path))
+                            android.net.Uri.fromFile(java.io.File(srtPath))
                         ).setMimeType(androidx.media3.common.MimeTypes.APPLICATION_SUBRIP)
                          .setSelectionFlags(androidx.media3.common.C.SELECTION_FLAG_DEFAULT)
                          .build()
-                        val mediaItem = androidx.media3.common.MediaItem.Builder()
+                        androidx.media3.common.MediaItem.Builder()
                             .setUri(video.uri)
                             .setSubtitleConfigurations(listOf(subConfig))
                             .build()
-                        player?.clearMediaItems()
-                        player?.setMediaItem(mediaItem)
-                        player?.prepare()
-                        player?.play()
+                    } else {
+                        androidx.media3.common.MediaItem.fromUri(video.uri)
                     }
+                    videoPlayer.clearMediaItems()
+                    videoPlayer.setMediaItem(mediaItem)
+                    videoPlayer.prepare()
+                    videoPlayer.play()
                 }
             },
             update = { pv ->
@@ -215,10 +221,10 @@ fun VideoPlayerScreen(
                                 // Double tap — seek ±10s
                                 val screenW = size.width
                                 if (it.x < screenW / 2) {
-                                    player.seekTo((player.currentPosition - 10000).coerceAtLeast(0))
+                                    videoPlayer.seekTo((videoPlayer.currentPosition - 10000).coerceAtLeast(0))
                                     seekLabel = "- 10s"
                                 } else {
-                                    player.seekTo(player.currentPosition + 10000)
+                                    videoPlayer.seekTo(videoPlayer.currentPosition + 10000)
                                     seekLabel = "+ 10s"
                                 }
                                 showSeekLabel = true
@@ -249,7 +255,7 @@ fun VideoPlayerScreen(
                                 showBrightness = true
                             } else {
                                 volume = (gestureStartVolume + delta * 1.5f).coerceIn(0f, 1f)
-                                player.volume = volume
+                                videoPlayer.volume = volume
                                 showVolume = true
                             }
                         }
@@ -388,7 +394,7 @@ fun VideoPlayerScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = {
-                        player.seekTo((player.currentPosition - 10000).coerceAtLeast(0))
+                        videoPlayer.seekTo((videoPlayer.currentPosition - 10000).coerceAtLeast(0))
                     }, modifier = Modifier.size(56.dp)) {
                         Icon(Icons.Filled.Replay10, null, tint = Color.White,
                             modifier = Modifier.size(40.dp))
@@ -399,14 +405,14 @@ fun VideoPlayerScreen(
                             .background(Color.White.copy(0.2f))
                             .border(2.dp, Color.White.copy(0.5f), CircleShape)
                             .clickable {
-                                if (player.isPlaying) player.pause() else player.play()
-                                isPlaying = player.isPlaying
+                                if (videoPlayer.isPlaying) videoPlayer.pause() else videoPlayer.play()
+                                isPlaying = videoPlayer.isPlaying
                             },
                         contentAlignment = Alignment.Center
                     ) {
                         // Poll player state
-                        val playing by produceState(player.isPlaying) {
-                            while (true) { value = player.isPlaying; delay(200) }
+                        val playing by produceState(videoPlayer.isPlaying) {
+                            while (true) { value = videoPlayer.isPlaying; delay(200) }
                         }
                         Icon(
                             if (playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
@@ -415,7 +421,7 @@ fun VideoPlayerScreen(
                     }
 
                     IconButton(onClick = {
-                        player.seekTo(player.currentPosition + 10000)
+                        videoPlayer.seekTo(videoPlayer.currentPosition + 10000)
                     }, modifier = Modifier.size(56.dp)) {
                         Icon(Icons.Filled.Forward10, null, tint = Color.White,
                             modifier = Modifier.size(40.dp))
@@ -427,10 +433,10 @@ fun VideoPlayerScreen(
                     Modifier.fillMaxWidth().align(Alignment.BottomCenter)
                         .padding(horizontal = 16.dp).navigationBarsPadding().padding(bottom = 8.dp)
                 ) {
-                    val position by produceState(player.currentPosition) {
-                        while (true) { value = player.currentPosition; delay(300) }
+                    val position by produceState(videoPlayer.currentPosition) {
+                        while (true) { value = videoPlayer.currentPosition; delay(300) }
                     }
-                    val duration = player.duration.coerceAtLeast(1L)
+                    val duration = videoPlayer.duration.coerceAtLeast(1L)
                     val progress = (position.toFloat() / duration).coerceIn(0f, 1f)
 
                     Row(Modifier.fillMaxWidth(),
@@ -442,7 +448,7 @@ fun VideoPlayerScreen(
                     }
                     Slider(
                         value    = progress,
-                        onValueChange = { player.seekTo((it * duration).toLong()) },
+                        onValueChange = { videoPlayer.seekTo((it * duration).toLong()) },
                         modifier = Modifier.fillMaxWidth(),
                         colors   = SliderDefaults.colors(
                             activeTrackColor   = NebulaViolet,
@@ -505,7 +511,7 @@ fun VideoPlayerScreen(
             current   = videoSpeed,
             onSelect  = { s ->
                 videoSpeed = s
-                player?.setPlaybackSpeed(s)
+                videoPlayer.setPlaybackSpeed(s)
                 showSpeed = false
             },
             onDismiss = { showSpeed = false }

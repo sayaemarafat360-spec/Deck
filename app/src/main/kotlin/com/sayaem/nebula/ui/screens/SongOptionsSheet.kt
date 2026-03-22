@@ -282,8 +282,10 @@ private fun InfoRow(label: String, value: String) {
 // ── Real Ringtone setter ──────────────────────────────────────────────
 private suspend fun setRingtone(context: Context, song: Song) = withContext(Dispatchers.IO) {
     try {
+        // Check WRITE_SETTINGS permission
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
             !Settings.System.canWrite(context)) {
+            // Send user to settings to grant permission
             val intent = Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS).apply {
                 data = Uri.parse("package:${context.packageName}")
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -291,15 +293,26 @@ private suspend fun setRingtone(context: Context, song: Song) = withContext(Disp
             context.startActivity(intent)
             return@withContext
         }
+        // Update MediaStore flags
         val values = ContentValues().apply {
             put(MediaStore.Audio.Media.IS_RINGTONE, true)
             put(MediaStore.Audio.Media.IS_NOTIFICATION, false)
             put(MediaStore.Audio.Media.IS_ALARM, false)
             put(MediaStore.Audio.Media.IS_MUSIC, false)
         }
-        context.contentResolver.update(song.uri, values, null, null)
-        RingtoneManager.setActualDefaultRingtoneUri(
-            context, RingtoneManager.TYPE_RINGTONE, song.uri)
+        // Try content URI first, fallback to external URI query
+        val updated = try {
+            context.contentResolver.update(song.uri, values, null, null)
+        } catch (_: Exception) {
+            context.contentResolver.update(
+                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, values,
+                "${MediaStore.Audio.Media._ID}=?", arrayOf(song.id.toString())
+            )
+        }
+        if (updated > 0) {
+            RingtoneManager.setActualDefaultRingtoneUri(
+                context, RingtoneManager.TYPE_RINGTONE, song.uri)
+        }
     } catch (e: Exception) { e.printStackTrace() }
 }
 

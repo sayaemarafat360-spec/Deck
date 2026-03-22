@@ -281,13 +281,31 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     // ── Share ─────────────────────────────────────────────────────────
     fun shareSong(song: Song) {
         try {
-            val i = Intent(Intent.ACTION_SEND).apply {
-                type = "text/plain"
-                putExtra(Intent.EXTRA_TEXT, "Listening to \"${song.title}\" by ${song.artist} on Deck")
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            val app = getApplication<Application>()
+            val file = java.io.File(song.filePath)
+            val shareUri = if (file.exists()) {
+                // Share the actual audio/video file
+                androidx.core.content.FileProvider.getUriForFile(
+                    app, "${app.packageName}.fileprovider", file)
+            } else {
+                // Fallback: share by content URI
+                song.uri
             }
-            getApplication<Application>().startActivity(
-                Intent.createChooser(i, "Share via").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            val mimeType = when {
+                song.isVideo -> "video/*"
+                song.filePath.endsWith(".flac", true) -> "audio/flac"
+                song.filePath.endsWith(".m4a", true)  -> "audio/mp4"
+                else -> "audio/*"
+            }
+            val i = Intent(Intent.ACTION_SEND).apply {
+                type = mimeType
+                putExtra(Intent.EXTRA_STREAM, shareUri)
+                putExtra(Intent.EXTRA_SUBJECT, song.title)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            app.startActivity(Intent.createChooser(i, "Share "${song.title}"")
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         } catch (_: Exception) {}
     }
 

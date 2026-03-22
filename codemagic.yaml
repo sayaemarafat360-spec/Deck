@@ -54,6 +54,9 @@ workflows:
             -o gradle/wrapper/gradle-wrapper.jar
           chmod +x gradlew
 
+      - name: Print SHA-1 fingerprint (add this to Firebase Console)
+        script: ./gradlew signingReport --no-daemon 2>&1 | grep -A3 "Variant: debug" | head -20
+
       - name: Build debug APK
         script: ./gradlew assembleDebug --no-daemon
 

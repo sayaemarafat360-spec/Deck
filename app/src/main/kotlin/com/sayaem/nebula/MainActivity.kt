@@ -49,7 +49,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
         requestPermissions()
-        setContent { DeckRoot(vm, backendVm, onGoogleSignIn = { googleSignInLauncher.launch(backendVm.getGoogleSignInIntent()) }) }
+        setContent { DeckRoot(vm, backendVm, onGoogleSignIn = { val i = backendVm.getGoogleSignInIntent(); if (i != null) googleSignInLauncher.launch(i) }) }
     }
 
     private fun requestPermissions() {
@@ -126,28 +126,7 @@ fun DeckRoot(vm: MainViewModel, backendVm: BackendViewModel, onGoogleSignIn: () 
     var drivingMode     by remember { mutableStateOf(false) }
     var optionsSong     by remember { mutableStateOf<com.sayaem.nebula.data.models.Song?>(null) }
 
-    // ── Back button — using BackHandler composable (more reliable) ────
-    // Order matters: innermost overlay handled first
-    if (drivingMode) {
-        BackHandler { drivingMode = false }
-    }
-    if (showSpeed) {
-        BackHandler { showSpeed = false }
-    }
-    if (showSleepTimer) {
-        BackHandler { showSleepTimer = false }
-    }
-    if (showEqualizer) {
-        BackHandler { showEqualizer = false }
-    }
-    if (showNowPlaying) {
-        BackHandler { showNowPlaying = false }
-    }
-    if (videoSong != null) {
-        BackHandler { videoSong = null }
-    }
-    // When on Home tab and nothing is open — do nothing (let system handle = minimize)
-    // No BackHandler needed for bottom nav tabs since we don't stack them
+    // BackHandlers moved inside DeckTheme Box below
 
     // Show backend messages (sign-in result, premium granted, etc.)
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -160,6 +139,28 @@ fun DeckRoot(vm: MainViewModel, backendVm: BackendViewModel, onGoogleSignIn: () 
 
     DeckTheme(darkTheme = isDark) {
         Box(Modifier.fillMaxSize().background(DarkBg)) {
+
+            // ── Back button handlers — MUST be inside composition tree ──
+            // Order: most specific first, base handler last
+            if (drivingMode)          BackHandler { drivingMode = false }
+            if (optionsSong != null)  BackHandler { optionsSong = null }
+            if (editingTagSong != null) BackHandler { editingTagSong = null }
+            if (showSpeed)            BackHandler { showSpeed = false }
+            if (showSleepTimer)       BackHandler { showSleepTimer = false }
+            if (showEqualizer)        BackHandler { showEqualizer = false }
+            if (showNowPlaying)       BackHandler { showNowPlaying = false }
+            if (videoSong != null)    BackHandler {
+                videoSong = null
+                // Restore music playback if it was interrupted by video
+            }
+            // Base handler: prevents accidental exit — minimizes instead
+            BackHandler(enabled = currentTab == Screen.Home) {
+                // Do nothing — swallow the back press on home tab
+                // User must use recents/swipe to exit
+            }
+            BackHandler(enabled = currentTab != Screen.Home) {
+                currentTab = Screen.Home
+            }
 
             // ── Onboarding ────────────────────────────────────────────
             if (showOnboarding) {
@@ -201,8 +202,9 @@ fun DeckRoot(vm: MainViewModel, backendVm: BackendViewModel, onGoogleSignIn: () 
                             recentSongs = recentSongs,
                             onSongClick  = { vm.playSong(it); showNowPlaying = true },
                             onEditTag    = { editingTagSong = it },
-                            onMoreClick  = { optionsSong = it },
-                            isPremium    = isPremium,
+                            onMoreClick      = { optionsSong = it },
+                            onMoreVideoClick  = { optionsSong = it },
+                            isPremium        = isPremium,
                             recentlyAdded = recentlyAdded,
                             onVideoClick = { song ->
                                 videoSong = song
