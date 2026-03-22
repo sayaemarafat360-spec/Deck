@@ -15,251 +15,289 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
-import com.sayaem.nebula.ui.components.*
+import com.sayaem.nebula.data.models.Song
 import com.sayaem.nebula.ui.theme.*
 import java.util.Calendar
 
 
+
+
 @Composable
 fun HomeScreen(
-    recentSongs: List<com.sayaem.nebula.data.models.Song> = emptyList(),
-    songs: List<com.sayaem.nebula.data.models.Song>,
-    onSongClick: (com.sayaem.nebula.data.models.Song) -> Unit,
+    songs: List<Song>,
+    videos: List<Song>,
+    recentSongs: List<Song>,
+    onSongClick: (Song) -> Unit,
+    onVideoClick: (Song) -> Unit,
     onPremiumClick: () -> Unit,
     onStatsClick: () -> Unit,
 ) {
-    val greeting = remember {
-        when (Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) {
-            in 0..11  -> "Good morning"
-            in 12..16 -> "Good afternoon"
-            else      -> "Good evening"
-        }
+    val hour = remember { Calendar.getInstance().get(Calendar.HOUR_OF_DAY) }
+    val greeting = when (hour) {
+        in 0..11 -> "Good morning"
+        in 12..16 -> "Good afternoon"
+        else -> "Good evening"
     }
-    var selectedMood by remember { mutableStateOf(0) }
-    val moods = listOf("All", "Energetic", "Happy", "Calm", "Focus")
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = 160.dp)
     ) {
-        // ── Greeting header ─────────────────────────────────────────
+
+        // ── Header ─────────────────────────────────────────────────────
         item {
             Row(
-                modifier = Modifier.fillMaxWidth()
-                    .padding(start = 20.dp, end = 20.dp, top = 56.dp, bottom = 8.dp),
+                Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 56.dp, bottom = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text(greeting, style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondaryDark)
-                    Text("What will you play?",
-                        style = MaterialTheme.typography.headlineLarge,
+                    Text(greeting, style = MaterialTheme.typography.bodyMedium, color = TextSecondaryDark)
+                    Text("Deck", style = MaterialTheme.typography.displaySmall,
                         color = TextPrimaryDark, fontWeight = FontWeight.Bold)
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    HeaderIconButton(Icons.Filled.Notifications)
-                    HeaderIconButton(Icons.Filled.AccountCircle)
+                Box(
+                    Modifier.size(42.dp).clip(RoundedCornerShape(13.dp))
+                        .background(DarkCard).border(0.5.dp, DarkBorder, RoundedCornerShape(13.dp))
+                        .clickable(onClick = onStatsClick),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Filled.BarChart, null, tint = NebulaViolet, modifier = Modifier.size(20.dp))
                 }
             }
         }
 
-        // ── Mood chips ───────────────────────────────────────────────
+        // ── Library summary chips ───────────────────────────────────────
         item {
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 20.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(vertical = 8.dp)
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                val moodIcons = listOf(Icons.Filled.MusicNote, Icons.Filled.Bolt,
-                    Icons.Filled.SentimentVerySatisfied, Icons.Filled.Cloud, Icons.Filled.Psychology)
-                val moodColors = listOf(NebulaViolet, NebulaRed, NebulaAmber, NebulaCyan, NebulaGreen)
-                itemsIndexed(moods) { i, mood ->
-                    MoodChip(
-                        label = mood,
-                        icon = { Icon(moodIcons[i], null,
-                            tint = if (selectedMood == i) moodColors[i] else TextTertiaryDark,
-                            modifier = Modifier.size(15.dp)) },
-                        selected = selectedMood == i,
-                        color = moodColors[i],
-                        onClick = { selectedMood = i }
-                    )
-                }
+                SummaryChip("${songs.size}", "Songs", NebulaViolet, Icons.Filled.MusicNote, Modifier.weight(1f))
+                SummaryChip("${videos.size}", "Videos", NebulaRed, Icons.Filled.VideoFile, Modifier.weight(1f))
+                SummaryChip("${(songs + videos).groupBy { it.artist }.size}", "Artists", NebulaCyan, Icons.Filled.Person, Modifier.weight(1f))
             }
         }
 
-        // ── Recently played ──────────────────────────────────────────
-        item { SectionHeader("Recently Played", "See all") }
-        item {
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 20.dp),
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                modifier = Modifier.padding(bottom = 4.dp)
-            ) {
-                val recentSongs = if (recentSongs.isEmpty()) songs.takeLast(8).reversed() else recentSongs.take(8)
-                if (recentSongs.isEmpty()) {
-                    item { EmptyRecentCard() }
-                } else {
-                    items(recentSongs) { song ->
-                        RecentSongCard(song = song, onClick = { onSongClick(song) })
+        // ── Continue Watching (Videos) ──────────────────────────────────
+        if (videos.isNotEmpty()) {
+            item {
+                Row(
+                    Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.PlayCircle, null, tint = NebulaRed, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Videos", style = MaterialTheme.typography.headlineSmall,
+                            color = TextPrimaryDark, fontWeight = FontWeight.Bold)
+                    }
+                    Text("${videos.size} files", style = MaterialTheme.typography.labelMedium, color = TextTertiaryDark)
+                }
+            }
+            item {
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(videos.take(10)) { video ->
+                        VideoCard(video = video, onClick = { onVideoClick(video) })
                     }
                 }
             }
         }
 
-        // ── Quick picks grid ─────────────────────────────────────────
-        item { SectionHeader("Quick Picks") }
+        // ── Recently Played ─────────────────────────────────────────────
         item {
-            val quickItems = listOf(
-                Triple("Liked Songs",    Icons.Filled.Favorite,    NebulaPink),
-                Triple("Recently Added", Icons.Filled.AutoAwesome,  NebulaViolet),
-                Triple("Top Mix",        Icons.Filled.Album,        NebulaAmber),
-                Triple("Chill Vibes",    Icons.Filled.Cloud,        NebulaCyan),
-                Triple("Focus Mode",     Icons.Filled.Psychology,   NebulaGreen),
-                Triple("Night Drive",    Icons.Filled.NightlightRound, NebulaVioletLight),
-            )
-            Column(
-                modifier = Modifier.padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                quickItems.chunked(2).forEach { row ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        row.forEach { (label, icon, color) ->
-                            QuickPickCard(label, icon, color, Modifier.weight(1f))
-                        }
-                        if (row.size == 1) Spacer(Modifier.weight(1f))
-                    }
-                }
-            }
-        }
-
-        // ── Stats preview ────────────────────────────────────────────
-        item { Spacer(Modifier.height(20.dp)) }
-        item {
-            Box(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(DarkCard)
-                    .border(0.5.dp, DarkBorder, RoundedCornerShape(20.dp))
-                    .clickable(onClick = onStatsClick)
-                    .padding(20.dp)
+            Row(
+                Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Filled.BarChart, null,
-                                tint = NebulaViolet, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("Your Week", style = MaterialTheme.typography.labelMedium,
-                                color = NebulaViolet)
-                        }
-                        Spacer(Modifier.height(8.dp))
-                        Text("${songs.size} songs in library",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = TextPrimaryDark, fontWeight = FontWeight.Bold)
-                        Text("Tap to see your stats",
-                            style = MaterialTheme.typography.bodySmall, color = TextTertiaryDark)
-                    }
-                    Box(
-                        modifier = Modifier.size(56.dp).clip(CircleShape)
-                            .background(NebulaViolet.copy(alpha = 0.15f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Filled.DonutLarge, null,
-                            tint = NebulaViolet, modifier = Modifier.size(28.dp))
+                    Icon(Icons.Filled.History, null, tint = NebulaViolet, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Recently Played", style = MaterialTheme.typography.headlineSmall,
+                        color = TextPrimaryDark, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+        item {
+            val display = if (recentSongs.isEmpty()) songs.take(8) else recentSongs.take(8)
+            if (display.isEmpty()) {
+                Box(Modifier.fillMaxWidth().height(80.dp), contentAlignment = Alignment.Center) {
+                    Text("No media yet — scan your storage", style = MaterialTheme.typography.bodyMedium,
+                        color = TextTertiaryDark)
+                }
+            } else {
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(display) { song ->
+                        RecentCard(song = song, onClick = { onSongClick(song) })
                     }
                 }
             }
         }
 
-        // ── Premium banner ───────────────────────────────────────────
-        item { Spacer(Modifier.height(16.dp)) }
-        item { PremiumBanner(onClick = onPremiumClick) }
+        // ── All Songs quick list ─────────────────────────────────────────
+        if (songs.isNotEmpty()) {
+            item {
+                Row(
+                    Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.MusicNote, null, tint = NebulaViolet, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Songs", style = MaterialTheme.typography.headlineSmall,
+                            color = TextPrimaryDark, fontWeight = FontWeight.Bold)
+                    }
+                    Text("${songs.size} tracks", style = MaterialTheme.typography.labelMedium, color = TextTertiaryDark)
+                }
+            }
+            items(songs.take(5)) { song ->
+                SongRow(song = song, onClick = { onSongClick(song) })
+                HorizontalDivider(Modifier.padding(start = 72.dp), color = DarkBorderSubtle, thickness = 0.5.dp)
+            }
+            if (songs.size > 5) {
+                item {
+                    Box(
+                        Modifier.fillMaxWidth().clickable {}.padding(vertical = 14.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("View all ${songs.size} songs in Library →",
+                            style = MaterialTheme.typography.labelLarge, color = NebulaViolet)
+                    }
+                }
+            }
+        }
     }
 }
 
 @Composable
-private fun HeaderIconButton(icon: androidx.compose.ui.graphics.vector.ImageVector) {
-    Box(
-        modifier = Modifier.size(42.dp).clip(RoundedCornerShape(13.dp))
-            .background(DarkCard).border(0.5.dp, DarkBorder, RoundedCornerShape(13.dp)),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(icon, null, tint = TextSecondaryDark, modifier = Modifier.size(20.dp))
-    }
-}
-
-@Composable
-private fun RecentSongCard(song: com.sayaem.nebula.data.models.Song, onClick: () -> Unit) {
-    val colors = listOf(NebulaViolet, NebulaPink, NebulaCyan, NebulaAmber, NebulaGreen)
-    val color = colors[((song.id % colors.size).toInt() + colors.size) % colors.size]
-
+private fun SummaryChip(
+    value: String, label: String, color: Color,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    modifier: Modifier
+) {
     Column(
-        modifier = Modifier.width(125.dp).clip(RoundedCornerShape(16.dp))
-            .background(DarkCard).border(0.5.dp, DarkBorder, RoundedCornerShape(16.dp))
+        modifier = modifier.clip(RoundedCornerShape(16.dp))
+            .background(color.copy(0.1f))
+            .border(0.5.dp, color.copy(0.2f), RoundedCornerShape(16.dp))
+            .padding(vertical = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(icon, null, tint = color, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.height(6.dp))
+        Text(value, style = MaterialTheme.typography.headlineSmall,
+            color = TextPrimaryDark, fontWeight = FontWeight.Bold)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = TextTertiaryDark)
+    }
+}
+
+@Composable
+private fun VideoCard(video: Song, onClick: () -> Unit) {
+    Box(
+        Modifier.width(200.dp).height(120.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color(0xFF1A0A0A))
+            .border(0.5.dp, DarkBorder, RoundedCornerShape(14.dp))
             .clickable(onClick = onClick)
     ) {
+        // Thumbnail placeholder
+        Box(Modifier.fillMaxSize().background(NebulaRed.copy(0.08f)),
+            contentAlignment = Alignment.Center) {
+            Icon(Icons.Filled.VideoFile, null, tint = NebulaRed.copy(0.4f),
+                modifier = Modifier.size(40.dp))
+        }
+        // Play button overlay
         Box(
-            modifier = Modifier.fillMaxWidth().height(110.dp)
-                .clip(RoundedCornerShape(topStart = 15.dp, topEnd = 15.dp))
-                .background(color.copy(alpha = 0.2f)),
+            Modifier.size(42.dp).clip(CircleShape)
+                .background(Color.Black.copy(0.5f))
+                .border(1.5.dp, Color.White.copy(0.7f), CircleShape)
+                .align(Alignment.Center),
             contentAlignment = Alignment.Center
         ) {
-            Box(Modifier.size(56.dp).clip(CircleShape).background(color.copy(alpha = 0.3f)),
-                contentAlignment = Alignment.Center) {
-                Icon(Icons.Filled.MusicNote, null, tint = color, modifier = Modifier.size(26.dp))
-            }
+            Icon(Icons.Filled.PlayArrow, null, tint = Color.White,
+                modifier = Modifier.size(22.dp))
+        }
+        // Duration badge
+        Box(
+            Modifier.align(Alignment.BottomEnd).padding(8.dp)
+                .clip(RoundedCornerShape(5.dp)).background(Color.Black.copy(0.75f))
+                .padding(horizontal = 6.dp, vertical = 3.dp)
+        ) {
+            Text(video.durationFormatted, style = MaterialTheme.typography.labelSmall,
+                color = Color.White)
+        }
+        // Title at bottom
+        Box(
+            Modifier.fillMaxWidth().align(Alignment.BottomStart)
+                .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(0.8f))))
+                .padding(horizontal = 10.dp, vertical = 8.dp)
+        ) {
+            Text(video.title, style = MaterialTheme.typography.labelMedium, color = Color.White,
+                maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
+@Composable
+private fun RecentCard(song: Song, onClick: () -> Unit) {
+    val colors = listOf(NebulaViolet, NebulaPink, NebulaCyan, NebulaAmber, NebulaGreen)
+    val color  = colors[(song.id % colors.size).toInt().let { if (it < 0) -it else it }]
+    Column(
+        Modifier.width(110.dp).clickable(onClick = onClick)
+    ) {
+        Box(
+            Modifier.size(110.dp).clip(RoundedCornerShape(14.dp))
+                .background(color.copy(0.15f))
+                .border(0.5.dp, color.copy(0.25f), RoundedCornerShape(14.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(Icons.Filled.MusicNote, null, tint = color, modifier = Modifier.size(36.dp))
             Box(
-                modifier = Modifier.align(Alignment.BottomEnd).padding(8.dp)
-                    .size(28.dp).clip(CircleShape).background(color),
+                Modifier.size(30.dp).clip(CircleShape).background(color)
+                    .align(Alignment.BottomEnd).offset((-6).dp, (-6).dp),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Filled.PlayArrow, null, tint = Color.White, modifier = Modifier.size(14.dp))
+                Icon(Icons.Filled.PlayArrow, null, tint = Color.White, modifier = Modifier.size(16.dp))
             }
         }
-        Column(Modifier.padding(10.dp)) {
-            Text(song.title, style = MaterialTheme.typography.labelMedium,
-                color = TextPrimaryDark, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Spacer(Modifier.height(2.dp))
-            Text(song.artist, style = MaterialTheme.typography.bodySmall,
-                color = TextTertiaryDark, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
+        Spacer(Modifier.height(6.dp))
+        Text(song.title, style = MaterialTheme.typography.labelMedium, color = TextPrimaryDark,
+            maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(song.artist, style = MaterialTheme.typography.labelSmall, color = TextTertiaryDark,
+            maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
 @Composable
-private fun EmptyRecentCard() {
-    Box(
-        modifier = Modifier.width(200.dp).height(130.dp).clip(RoundedCornerShape(16.dp))
-            .background(DarkCard).border(0.5.dp, DarkBorder, RoundedCornerShape(16.dp)),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(Icons.Filled.LibraryMusic, null, tint = TextTertiaryDark, modifier = Modifier.size(32.dp))
-            Spacer(Modifier.height(8.dp))
-            Text("No songs yet", style = MaterialTheme.typography.bodySmall, color = TextTertiaryDark)
-        }
-    }
-}
-
-@Composable
-private fun QuickPickCard(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector,
-                          color: Color, modifier: Modifier) {
+private fun SongRow(song: Song, onClick: () -> Unit) {
+    val colors = listOf(NebulaViolet, NebulaPink, NebulaCyan, NebulaAmber, NebulaGreen)
+    val color  = colors[(song.id % colors.size).toInt().let { if (it < 0) -it else it }]
     Row(
-        modifier = modifier.height(52.dp).clip(RoundedCornerShape(14.dp))
-            .background(DarkCard).border(0.5.dp, DarkBorder, RoundedCornerShape(14.dp)),
+        Modifier.fillMaxWidth().clickable(onClick = onClick)
+            .padding(horizontal = 20.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
-            modifier = Modifier.width(52.dp).fillMaxHeight()
-                .clip(RoundedCornerShape(topStart = 13.dp, bottomStart = 13.dp))
-                .background(color.copy(alpha = 0.18f)),
+            Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).background(color.copy(0.15f)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(icon, null, tint = color, modifier = Modifier.size(20.dp))
+            Icon(Icons.Filled.MusicNote, null, tint = color, modifier = Modifier.size(22.dp))
         }
-        Spacer(Modifier.width(10.dp))
-        Text(label, style = MaterialTheme.typography.labelMedium,
-            color = TextPrimaryDark, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            Text(song.title, style = MaterialTheme.typography.titleSmall, color = TextPrimaryDark,
+                maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.SemiBold)
+            Text(song.artist, style = MaterialTheme.typography.bodySmall, color = TextTertiaryDark,
+                maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        Text(song.durationFormatted, style = MaterialTheme.typography.labelSmall, color = TextTertiaryDark)
     }
 }

@@ -2,26 +2,31 @@ package com.sayaem.nebula.ui.screens
 
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.*
+import androidx.compose.ui.geometry.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
+import androidx.compose.foundation.gestures.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.drawscope.*
+import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
 import com.sayaem.nebula.MainViewModel
 import com.sayaem.nebula.ui.theme.*
 
 
+
 data class EqState(
-    val preset: String = "Flat",
-    val bands: List<Float> = List(10) { 0f },
     val enabled: Boolean = true,
+    val bands: MutableList<Float> = MutableList(10) { 0f },
     val bassBoost: Float = 0f,
+    val preset: String = "Flat",
 )
 
 @Composable
@@ -32,106 +37,200 @@ fun EqualizerScreen(
     onToggleEq: () -> Unit,
     onBack: () -> Unit,
 ) {
-    val freqLabels = listOf("60","150","250","500","1K","2K","4K","8K","12K","16K")
-    val presets    = MainViewModel.EQ_PRESETS.keys.toList()
+    val presets = MainViewModel.EQ_PRESETS.keys.toList()
+    val freqLabels = listOf("60", "170", "310", "600", "1K", "3K", "6K", "12K", "14K", "16K")
 
-    Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(start = 8.dp, end = 20.dp, top = 52.dp),
-            verticalAlignment = Alignment.CenterVertically) {
+    Column(Modifier.fillMaxSize().background(DarkBg)) {
+
+        // ── Top bar ──────────────────────────────────────────────────
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 8.dp).statusBarsPadding(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             IconButton(onClick = onBack) {
                 Icon(Icons.Filled.ArrowBack, null, tint = TextPrimaryDark)
             }
-            Text("Equalizer", style = MaterialTheme.typography.headlineLarge,
-                color = TextPrimaryDark, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-            Box(
-                modifier = Modifier.clip(RoundedCornerShape(20.dp))
-                    .background(if (eqState.enabled) NebulaViolet.copy(alpha = 0.2f) else Color.Transparent)
-                    .border(1.dp,
-                        if (eqState.enabled) NebulaViolet.copy(alpha = 0.5f) else DarkBorder,
-                        RoundedCornerShape(20.dp))
-                    .clickable(onClick = onToggleEq)
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                Text(if (eqState.enabled) "ON" else "OFF",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = if (eqState.enabled) NebulaViolet else TextTertiaryDark)
-            }
+            Text("Equalizer", style = MaterialTheme.typography.headlineMedium,
+                color = TextPrimaryDark, fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f).padding(start = 4.dp))
+            Text(if (eqState.enabled) "ON" else "OFF",
+                style = MaterialTheme.typography.labelLarge,
+                color = if (eqState.enabled) NebulaViolet else TextTertiaryDark,
+                modifier = Modifier.padding(end = 8.dp))
+            Switch(
+                checked = eqState.enabled,
+                onCheckedChange = { onToggleEq() },
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = Color.White,
+                    checkedTrackColor = NebulaViolet,
+                    uncheckedThumbColor = Color.White,
+                    uncheckedTrackColor = DarkBorder,
+                )
+            )
         }
-        Spacer(Modifier.height(12.dp))
 
-        // Presets
-        LazyRow(contentPadding = PaddingValues(horizontal = 20.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(presets) { preset ->
-                val sel = preset == eqState.preset
+        // ── Preset chips ─────────────────────────────────────────────
+        androidx.compose.foundation.lazy.LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(presets.size) { i ->
+                val p = presets[i]
+                val selected = eqState.preset == p
                 Box(
-                    modifier = Modifier.clip(RoundedCornerShape(18.dp))
-                        .background(if (sel) NebulaViolet.copy(alpha = 0.2f) else Color.Transparent)
-                        .border(if (sel) 1.dp else 0.5.dp,
-                            if (sel) NebulaViolet.copy(alpha = 0.6f) else DarkBorder,
-                            RoundedCornerShape(18.dp))
-                        .clickable { onPresetChanged(preset) }
-                        .padding(horizontal = 14.dp, vertical = 8.dp)
+                    Modifier.clip(RoundedCornerShape(20.dp))
+                        .background(if (selected) NebulaViolet else DarkCard)
+                        .border(0.5.dp, if (selected) NebulaViolet else DarkBorder, RoundedCornerShape(20.dp))
+                        .clickable { onPresetChanged(p) }
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
-                    Text(preset, style = MaterialTheme.typography.labelMedium,
-                        color = if (sel) NebulaViolet else TextSecondaryDark)
+                    Text(p, style = MaterialTheme.typography.labelMedium,
+                        color = if (selected) Color.White else TextSecondaryDark)
                 }
             }
         }
-        Spacer(Modifier.height(20.dp))
 
-        // EQ bands — vertical sliders
-        Box(modifier = Modifier.weight(1f).alpha(if (eqState.enabled) 1f else 0.4f)) {
-            Row(modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly) {
-                eqState.bands.forEachIndexed { i, value ->
-                    val barColor = if (i < 5) NebulaCyan else NebulaPink
-                    Column(horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.weight(1f)) {
-                        Text(if (value != 0f) "${if (value > 0) "+" else ""}${value.toInt()}"
-                            else "", style = MaterialTheme.typography.labelSmall,
-                            color = barColor, modifier = Modifier.height(16.dp))
-                        Slider(
-                            value = value, onValueChange = { onBandChanged(i, it) },
-                            valueRange = -12f..12f, steps = 23,
-                            modifier = Modifier.fillMaxHeight(0.75f)
-                                .rotate(270f),
-                            colors = SliderDefaults.colors(activeTrackColor = barColor,
-                                thumbColor = Color.White, inactiveTrackColor = DarkBorder)
-                        )
-                        Text(freqLabels[i], style = MaterialTheme.typography.labelSmall,
-                            color = TextTertiaryDark, modifier = Modifier.height(16.dp))
+        // ── EQ bands — vertical drag bars ────────────────────────────
+        Box(
+            Modifier.fillMaxWidth().weight(1f)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .alpha(if (eqState.enabled) 1f else 0.4f)
+        ) {
+            // dB labels on left
+            Column(
+                Modifier.align(Alignment.CenterStart).width(28.dp),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                listOf("+12", "+6", "0", "-6", "-12").forEach { label ->
+                    Text(label, style = MaterialTheme.typography.labelSmall,
+                        color = TextTertiaryDark, modifier = Modifier.padding(bottom = 0.dp))
+                }
+            }
+
+            // The 10 band bars
+            Row(
+                Modifier.fillMaxSize().padding(start = 32.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                repeat(10) { bandIdx ->
+                    EqBand(
+                        bandIndex  = bandIdx,
+                        value      = eqState.bands.getOrElse(bandIdx) { 0f },
+                        label      = freqLabels.getOrElse(bandIdx) { "" },
+                        enabled    = eqState.enabled,
+                        onChanged  = { v -> onBandChanged(bandIdx, v) },
+                        modifier   = Modifier.weight(1f).fillMaxHeight()
+                    )
+                }
+            }
+        }
+
+        // ── Bass Boost ───────────────────────────────────────────────
+        Column(Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Bass Boost", style = MaterialTheme.typography.bodyMedium,
+                    color = TextPrimaryDark, fontWeight = FontWeight.SemiBold)
+                Text("${(eqState.bassBoost * 100).toInt()}%",
+                    style = MaterialTheme.typography.bodyMedium, color = NebulaViolet)
+            }
+            Spacer(Modifier.height(6.dp))
+            Slider(
+                value = eqState.bassBoost,
+                onValueChange = { /* handled by parent */ },
+                modifier = Modifier.fillMaxWidth(),
+                colors = SliderDefaults.colors(
+                    activeTrackColor = NebulaViolet,
+                    thumbColor = Color.White,
+                    inactiveTrackColor = DarkBorder,
+                )
+            )
+        }
+
+        Spacer(Modifier.navigationBarsPadding().height(16.dp))
+    }
+}
+
+@Composable
+private fun EqBand(
+    bandIndex: Int,
+    value: Float,         // -12 to +12 dB
+    label: String,
+    enabled: Boolean,
+    onChanged: (Float) -> Unit,
+    modifier: Modifier,
+) {
+    val normalised = (value + 12f) / 24f  // 0..1, 0.5 = center
+
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // dB value label
+        Text(
+            text = if (value == 0f) "0" else if (value > 0) "+${value.toInt()}" else "${value.toInt()}",
+            style = MaterialTheme.typography.labelSmall,
+            color = if (value != 0f) NebulaViolet else TextTertiaryDark,
+            modifier = Modifier.height(18.dp)
+        )
+
+        Spacer(Modifier.height(4.dp))
+
+        // Vertical drag bar
+        Box(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp)
+                .pointerInput(enabled) {
+                    if (!enabled) return@pointerInput
+                    detectDragGestures { _, drag ->
+                        val delta = -drag.y / size.height * 24f
+                        onChanged((value + delta).coerceIn(-12f, 12f))
                     }
                 }
-            }
-        }
-        Spacer(Modifier.height(16.dp))
+        ) {
+            Canvas(Modifier.fillMaxSize()) {
+                val trackW  = size.width * 0.35f
+                val trackX  = (size.width - trackW) / 2
+                val centerY = size.height / 2
 
-        // Bass Boost
-        Column(Modifier.padding(horizontal = 20.dp)) {
-            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
-                .background(DarkCard).border(0.5.dp, DarkBorder, RoundedCornerShape(16.dp))
-                .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(38.dp).clip(RoundedCornerShape(10.dp))
-                    .background(NebulaRed.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center) {
-                    Icon(Icons.Filled.VolumeUp, null, tint = NebulaRed, modifier = Modifier.size(18.dp))
-                }
-                Spacer(Modifier.width(14.dp))
-                Column(Modifier.weight(1f)) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Bass Boost", style = MaterialTheme.typography.bodyMedium, color = TextPrimaryDark)
-                        Text("${(eqState.bassBoost * 100).toInt()}%",
-                            style = MaterialTheme.typography.labelMedium, color = NebulaRed)
-                    }
-                    Slider(value = eqState.bassBoost,
-                        onValueChange = { /* handled in VM */ },
-                        colors = SliderDefaults.colors(activeTrackColor = NebulaRed,
-                            thumbColor = Color.White, inactiveTrackColor = DarkBorder))
-                }
+                // Track background
+                drawRoundRect(
+                    color  = DarkBorder,
+                    topLeft = Offset(trackX, 0f),
+                    size   = Size(trackW, size.height),
+                    cornerRadius = CornerRadius(trackW / 2)
+                )
+
+                // Active fill from center to thumb
+                val thumbY = size.height * (1f - normalised)
+                val fillTop    = minOf(centerY, thumbY)
+                val fillBottom = maxOf(centerY, thumbY)
+                drawRoundRect(
+                    color  = NebulaViolet,
+                    topLeft = Offset(trackX, fillTop),
+                    size   = Size(trackW, (fillBottom - fillTop).coerceAtLeast(2f)),
+                    cornerRadius = CornerRadius(trackW / 2)
+                )
+
+                // Thumb circle
+                drawCircle(
+                    color  = Color.White,
+                    radius = trackW * 0.85f,
+                    center = Offset(size.width / 2, thumbY)
+                )
+                drawCircle(
+                    color  = NebulaViolet,
+                    radius = trackW * 0.5f,
+                    center = Offset(size.width / 2, thumbY)
+                )
             }
         }
-        Spacer(Modifier.height(24.dp))
+
+        Spacer(Modifier.height(4.dp))
+
+        // Frequency label
+        Text(label, style = MaterialTheme.typography.labelSmall,
+            color = TextTertiaryDark, modifier = Modifier.height(16.dp))
     }
 }

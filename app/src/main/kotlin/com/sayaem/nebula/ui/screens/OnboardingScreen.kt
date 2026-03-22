@@ -23,6 +23,8 @@ import kotlinx.coroutines.launch
 import kotlin.math.*
 
 
+
+
 data class OnboardingPage(
     val title: String,
     val subtitle: String,

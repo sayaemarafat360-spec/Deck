@@ -1,6 +1,10 @@
 package com.sayaem.nebula.player
 
+import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
+import android.content.ServiceConnection
+import android.os.IBinder
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
@@ -9,81 +13,117 @@ import com.sayaem.nebula.data.models.RepeatMode
 import com.sayaem.nebula.data.models.Song
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-class PlayerController(context: Context) {
 
-    val player: ExoPlayer = ExoPlayer.Builder(context).build()
+class PlayerController(private val context: Context) {
 
     private val _state = MutableStateFlow(PlaybackState())
-    val state: StateFlow<PlaybackState> = _state.asStateFlow()
+    val state = _state.asStateFlow()
 
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var positionJob: Job? = null
+    private var currentQueue: List<Song> = emptyList()
+    private var _service: DeckPlaybackService? = null
+
+    // Safe accessor — throws if not ready (use isReady to check first)
+    val player: ExoPlayer get() = _service?.exoPlayer
+        ?: throw IllegalStateException("Service not bound yet")
+
+    // Null-safe accessor for VideoPlayerScreen
+    val playerOrNull: ExoPlayer? get() = _service?.exoPlayer
+
+    val isReady: Boolean get() = _service?.exoPlayer != null
+
+    // Callback when audio session is ready for EQ
+    var onAudioSessionReady: ((Int) -> Unit)? = null
+
+    private val serviceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
+            _service = (binder as? DeckPlaybackService.LocalBinder)?.getService()
+            _service?.exoPlayer?.addListener(playerListener)
+        }
+        override fun onServiceDisconnected(name: ComponentName?) {
+            _service = null
+        }
+    }
+
+    private val playerListener = object : Player.Listener {
+        override fun onPlaybackStateChanged(s: Int) {
+            syncState()
+            if (s == Player.STATE_READY) {
+                val sid = _service?.exoPlayer?.audioSessionId ?: 0
+                if (sid != 0) onAudioSessionReady?.invoke(sid)
+            }
+        }
+        override fun onIsPlayingChanged(p: Boolean) {
+            syncState()
+            if (p) startPositionUpdates() else stopPositionUpdates()
+        }
+        override fun onMediaItemTransition(item: MediaItem?, reason: Int) { syncState() }
+        override fun onShuffleModeEnabledChanged(e: Boolean) { syncState() }
+        override fun onRepeatModeChanged(m: Int) { syncState() }
+    }
 
     init {
-        player.addListener(object : Player.Listener {
-            override fun onPlaybackStateChanged(s: Int) { syncState() }
-            override fun onIsPlayingChanged(isPlaying: Boolean) { syncState(); if (isPlaying) startPositionUpdates() else stopPositionUpdates() }
-            override fun onMediaItemTransition(item: MediaItem?, reason: Int) { syncState() }
-        })
+        // Start + bind to service
+        val intent = Intent(context, DeckPlaybackService::class.java).apply {
+            action = DeckPlaybackService.ACTION_BIND
+        }
+        context.startService(Intent(context, DeckPlaybackService::class.java))
+        context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
     }
 
     fun playQueue(songs: List<Song>, startIndex: Int = 0) {
-        player.clearMediaItems()
-        songs.forEach { song ->
-            player.addMediaItem(MediaItem.Builder().setUri(song.uri).setMediaId(song.id.toString()).build())
-        }
-        _state.value = _state.value.copy(queue = songs, queueIndex = startIndex, currentSong = songs.getOrNull(startIndex))
-        player.seekToDefaultPosition(startIndex)
-        player.prepare()
-        player.play()
+        val p = _service?.exoPlayer ?: return
+        currentQueue = songs
+        p.clearMediaItems()
+        p.addMediaItems(songs.map { MediaItem.fromUri(it.uri) })
+        p.seekToDefaultPosition(startIndex)
+        p.prepare()
+        p.play()
+        startPositionUpdates()
     }
 
-    fun playSong(song: Song) = playQueue(listOf(song))
-
-    fun togglePlay() { if (player.isPlaying) player.pause() else player.play() }
-    fun next()       { if (player.hasNextMediaItem()) player.seekToNextMediaItem() }
-    fun previous()   { if (player.currentPosition > 3000) player.seekTo(0) else if (player.hasPreviousMediaItem()) player.seekToPreviousMediaItem() }
-    fun seekTo(ms: Long) = player.seekTo(ms)
-    fun seekToFraction(fraction: Float) = player.seekTo((player.duration * fraction).toLong())
-
-    fun setSpeed(speed: Float) {
-        player.setPlaybackSpeed(speed)
-        _state.value = _state.value.copy()
-    }
-
-    fun setVolume(v: Float) { player.volume = v.coerceIn(0f, 1f) }
-
-    fun toggleShuffle() {
-        val shuffled = !_state.value.isShuffled
-        player.shuffleModeEnabled = shuffled
-        _state.value = _state.value.copy(isShuffled = shuffled)
-    }
+    fun togglePlay()            { _service?.exoPlayer?.let { if (it.isPlaying) it.pause() else it.play() } }
+    fun next()                  { _service?.exoPlayer?.let { if (it.hasNextMediaItem()) it.seekToNextMediaItem() } }
+    fun previous()              { _service?.exoPlayer?.let { if (it.currentPosition > 3000) it.seekTo(0) else if (it.hasPreviousMediaItem()) it.seekToPreviousMediaItem() } }
+    fun seekTo(ms: Long)        { _service?.exoPlayer?.seekTo(ms) }
+    fun seekToFraction(f: Float){ _service?.exoPlayer?.let { it.seekTo((it.duration * f).toLong().coerceAtLeast(0)) } }
+    fun seekToIndex(idx: Int)   { _service?.exoPlayer?.seekTo(idx, 0) }
+    fun setSpeed(s: Float)      { _service?.exoPlayer?.setPlaybackSpeed(s) }
+    fun setVolume(v: Float)     { _service?.exoPlayer?.let { it.volume = v.coerceIn(0f, 1f) } }
+    fun toggleShuffle()         { _service?.exoPlayer?.let { it.shuffleModeEnabled = !it.shuffleModeEnabled } }
 
     fun cycleRepeat() {
-        val next = when (_state.value.repeatMode) {
-            RepeatMode.NONE -> RepeatMode.ALL
-            RepeatMode.ALL  -> RepeatMode.ONE
-            RepeatMode.ONE  -> RepeatMode.NONE
+        _service?.exoPlayer?.let {
+            it.repeatMode = when (it.repeatMode) {
+                Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+                Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+                else                   -> Player.REPEAT_MODE_OFF
+            }
         }
-        player.repeatMode = when (next) {
-            RepeatMode.NONE -> Player.REPEAT_MODE_OFF
-            RepeatMode.ALL  -> Player.REPEAT_MODE_ALL
-            RepeatMode.ONE  -> Player.REPEAT_MODE_ONE
-        }
-        _state.value = _state.value.copy(repeatMode = next)
     }
 
+    fun getQueue(): List<Song> = currentQueue
+
     private fun syncState() {
-        val idx  = player.currentMediaItemIndex
-        val song = _state.value.queue.getOrNull(idx)
-        _state.value = _state.value.copy(
+        val p = _service?.exoPlayer ?: return
+        val idx  = p.currentMediaItemIndex.coerceAtLeast(0)
+        val song = currentQueue.getOrNull(idx)
+        val repeat = when (p.repeatMode) {
+            Player.REPEAT_MODE_ONE -> RepeatMode.ONE
+            Player.REPEAT_MODE_ALL -> RepeatMode.ALL
+            else                   -> RepeatMode.NONE
+        }
+        _state.value = PlaybackState(
             currentSong = song,
-            isPlaying   = player.isPlaying,
-            position    = player.currentPosition.coerceAtLeast(0),
-            duration    = player.duration.coerceAtLeast(0),
+            isPlaying   = p.isPlaying,
+            position    = p.currentPosition.coerceAtLeast(0),
+            duration    = p.duration.coerceAtLeast(0),
+            isShuffled  = p.shuffleModeEnabled,
+            repeatMode  = repeat,
+            queue       = currentQueue,
             queueIndex  = idx,
         )
     }
@@ -91,12 +131,15 @@ class PlayerController(context: Context) {
     private fun startPositionUpdates() {
         positionJob?.cancel()
         positionJob = scope.launch {
-            while (isActive) {
-                _state.value = _state.value.copy(
-                    position = player.currentPosition.coerceAtLeast(0),
-                    duration = player.duration.coerceAtLeast(0),
-                )
+            while (true) {
                 delay(500)
+                val p = _service?.exoPlayer ?: break
+                if (!p.isPlaying) break
+                _state.value = _state.value.copy(
+                    position  = p.currentPosition.coerceAtLeast(0),
+                    duration  = p.duration.coerceAtLeast(0),
+                    isPlaying = p.isPlaying,
+                )
             }
         }
     }
@@ -104,7 +147,8 @@ class PlayerController(context: Context) {
     private fun stopPositionUpdates() { positionJob?.cancel() }
 
     fun release() {
+        positionJob?.cancel()
         scope.cancel()
-        player.release()
+        try { context.unbindService(serviceConnection) } catch (_: Exception) {}
     }
 }

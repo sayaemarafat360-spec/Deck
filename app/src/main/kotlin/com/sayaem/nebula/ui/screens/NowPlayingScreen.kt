@@ -5,6 +5,7 @@ import androidx.compose.ui.draw.*
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
+import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.*
 import androidx.compose.material.icons.Icons
@@ -20,6 +21,8 @@ import com.sayaem.nebula.data.models.RepeatMode
 import com.sayaem.nebula.data.models.Song
 import com.sayaem.nebula.ui.components.PlayingIndicator
 import com.sayaem.nebula.ui.theme.*
+
+
 
 
 @Composable
@@ -38,7 +41,9 @@ fun NowPlayingScreen(
     onSleepTimer: () -> Unit,
     onSpeedClick: () -> Unit,
     onShare: (Song) -> Unit,
+    isFavorite: Boolean = false,
     onToggleFavorite: (Song) -> Unit,
+    onQueueSeekTo: ((Int) -> Unit)? = null,
 ) {
     val song = state.currentSong
 
@@ -53,7 +58,8 @@ fun NowPlayingScreen(
         animationSpec = infiniteRepeatable(tween(8000, easing = LinearEasing)), label = "rot"
     )
 
-    var isFav by remember { mutableStateOf(false) }
+    var isFav by remember(isFavorite) { mutableStateOf(isFavorite) }
+    var showQueue by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()
         .background(Brush.verticalGradient(listOf(bgAnim, DarkBg)))) {
@@ -70,7 +76,7 @@ fun NowPlayingScreen(
                 CircleBtn(Icons.Filled.KeyboardArrowDown, onClick = onClose)
                 Text("Now Playing", style = MaterialTheme.typography.labelMedium,
                     color = TextSecondaryDark)
-                CircleBtn(Icons.Filled.QueueMusic, onClick = {})
+                CircleBtn(Icons.Filled.QueueMusic, onClick = { showQueue = true })
             }
 
             Spacer(Modifier.height(32.dp))
@@ -244,4 +250,106 @@ private fun formatMs(ms: Long): String {
     val m = (ms / 60000).toString().padStart(2, '0')
     val s = ((ms % 60000) / 1000).toString().padStart(2, '0')
     return "$m:$s"
+    // Fix 7: Queue sheet
+    if (showQueue) {
+        QueueSheet(
+            queue      = state.queue,
+            currentIdx = state.queueIndex,
+            onSeekTo   = { idx -> onQueueSeekTo?.invoke(idx); showQueue = false },
+            onDismiss  = { showQueue = false }
+        )
+    }
+
+}
+
+@Composable
+fun QueueSheet(
+    queue: List<com.sayaem.nebula.data.models.Song>,
+    currentIdx: Int,
+    onSeekTo: (Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Box(
+        Modifier.fillMaxSize()
+            .background(androidx.compose.ui.graphics.Color.Black.copy(0.6f))
+            .clickable(onClick = onDismiss)
+    ) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.75f)
+                .align(Alignment.BottomCenter)
+                .clip(androidx.compose.foundation.shape.RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+                .background(DarkBgSecondary)
+                .clickable(enabled = false) {}
+        ) {
+            // Handle + header
+            Box(Modifier.width(36.dp).height(4.dp)
+                .clip(androidx.compose.foundation.shape.RoundedCornerShape(2.dp))
+                .background(DarkBorder)
+                .align(Alignment.CenterHorizontally)
+                .padding(top = 12.dp))
+
+            Spacer(Modifier.height(20.dp))
+            Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically) {
+                Text("Up Next", style = MaterialTheme.typography.headlineSmall,
+                    color = TextPrimaryDark, fontWeight = FontWeight.Bold)
+                Text("${queue.size} songs", style = MaterialTheme.typography.bodySmall,
+                    color = TextTertiaryDark)
+            }
+            Spacer(Modifier.height(12.dp))
+
+            LazyColumn(
+                contentPadding = PaddingValues(bottom = 40.dp)
+            ) {
+                items(queue.size) { i ->
+                    val song    = queue[i]
+                    val isCurr  = i == currentIdx
+                    Row(
+                        Modifier.fillMaxWidth()
+                            .background(if (isCurr) NebulaViolet.copy(0.08f) else androidx.compose.ui.graphics.Color.Transparent)
+                            .clickable { onSeekTo(i) }
+                            .padding(horizontal = 20.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Index or playing indicator
+                        Box(Modifier.width(28.dp)) {
+                            if (isCurr) {
+                                Icon(Icons.Filled.VolumeUp, null, tint = NebulaViolet,
+                                    modifier = Modifier.size(18.dp))
+                            } else {
+                                Text("${i + 1}", style = MaterialTheme.typography.labelSmall,
+                                    color = TextTertiaryDark)
+                            }
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(song.title,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (isCurr) NebulaViolet else TextPrimaryDark,
+                                fontWeight = if (isCurr) FontWeight.SemiBold else FontWeight.Normal,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                            Text(song.artist,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextTertiaryDark,
+                                maxLines = 1)
+                        }
+                        Text(song.durationFormatted,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextTertiaryDark)
+                    }
+                    if (i < queue.size - 1) {
+                        HorizontalDivider(
+                            Modifier.padding(start = 60.dp),
+                            color = DarkBorderSubtle,
+                            thickness = 0.5.dp
+                        )
+                    }
+                }
+            }
+        }
+    }
 }

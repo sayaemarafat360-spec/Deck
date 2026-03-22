@@ -25,6 +25,8 @@ import com.sayaem.nebula.ui.theme.*
 
 
 
+
+
 @Composable
 fun SearchScreen(
     query: String, onQueryChange: (String) -> Unit,
