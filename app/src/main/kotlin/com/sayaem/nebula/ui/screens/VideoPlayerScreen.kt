@@ -64,8 +64,16 @@ fun VideoPlayerScreen(
     var isPlaying      by remember { mutableStateOf(true) }
     var brightness     by remember { mutableStateOf(0.5f) }
     var volume         by remember { mutableStateOf(1.0f) }
-    var aspectLabel    by remember { mutableStateOf("16:9") }
+    var aspectIdx      by remember { mutableStateOf(0) }
     val aspectOptions  = listOf("16:9", "4:3", "Fit", "Zoom")
+    val aspectLabel    = aspectOptions[aspectIdx]
+    val resizeModes    = listOf(
+        androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT,
+        androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIXED_HEIGHT,
+        androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT,
+        androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM,
+    )
+    var playerViewRef by remember { mutableStateOf<androidx.media3.ui.PlayerView?>(null) }
 
     // Force landscape
     LaunchedEffect(Unit) {
@@ -95,8 +103,9 @@ fun VideoPlayerScreen(
             factory = { ctx ->
                 PlayerView(ctx).apply {
                     this.player = player
-                    useController = false // we draw our own
+                    useController = false
                     setBackgroundColor(android.graphics.Color.BLACK)
+                    playerViewRef = this
                 }
             },
             modifier = Modifier.fillMaxSize()
@@ -151,12 +160,12 @@ fun VideoPlayerScreen(
                 }
         )
 
-        // Brightness overlay
-        Box(
-            modifier = Modifier.fillMaxSize().background(
-                Color.Black.copy(alpha = (0.8f - brightness).coerceIn(0f, 0.8f))
-            )
-        )
+        // Real screen brightness via WindowManager
+        LaunchedEffect(brightness) {
+            activity?.window?.attributes = activity?.window?.attributes?.also {
+                it.screenBrightness = brightness.coerceIn(0.01f, 1.0f)
+            }
+        }
 
         // Controls overlay
         AnimatedVisibility(visible = showControls,

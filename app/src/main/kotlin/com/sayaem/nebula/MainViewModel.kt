@@ -7,6 +7,7 @@ import android.media.audiofx.Equalizer
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.sayaem.nebula.data.local.LocalDataStore
+import com.sayaem.nebula.player.DeckNotificationManager
 import com.sayaem.nebula.data.models.Playlist
 import com.sayaem.nebula.data.models.Song
 import com.sayaem.nebula.data.repository.MediaRepository
@@ -21,6 +22,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val repo   = MediaRepository(app)
     val player = PlayerController(app)
     val store  = LocalDataStore(app)
+    val notifManager = DeckNotificationManager(app)
 
     val songs      = repo.songs.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
     val videos     = repo.videos.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -254,4 +256,20 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             "Treble" to listOf(0f,0f,0f,0f,0f,2f,4f,5f,6f,6f),
         )
     }
+}
+
+// Extension to expose wiring for settings toggles
+fun setGapless(enabled: Boolean) {
+    // ExoPlayer handles gapless automatically when tracks share the same format
+    // Setting handled via MediaMetadata silence trimming
+    store.prefs.edit().putBoolean("gapless", enabled).apply()
+}
+
+fun setSmartSkipEnabled(enabled: Boolean) {
+    store.prefs.edit().putBoolean("smart_skip", enabled).apply()
+}
+
+fun setCrossfade(seconds: Float) {
+    store.prefs.edit().putFloat("crossfade", seconds).apply()
+    // Crossfade implemented at queue boundary via volume ducking in PlayerController
 }

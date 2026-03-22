@@ -13,7 +13,7 @@ import org.json.JSONObject
  */
 class LocalDataStore(context: Context) {
 
-    private val prefs: SharedPreferences =
+    val prefs: SharedPreferences =
         context.getSharedPreferences("deck_data", Context.MODE_PRIVATE)
 
     // ─── Keys ────────────────────────────────────────────────────────
@@ -188,3 +188,7 @@ class LocalDataStore(context: Context) {
         })
     }
 }
+
+    // ─── Onboarding ───────────────────────────────────────────────────
+    fun isOnboardingDone(): Boolean = prefs.getBoolean("onboarding_done", false)
+    fun markOnboardingDone() = prefs.edit().putBoolean("onboarding_done", true).apply()

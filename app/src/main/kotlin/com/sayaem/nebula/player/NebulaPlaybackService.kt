@@ -10,7 +10,7 @@ import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import com.sayaem.nebula.MainActivity
 
-class NebulaPlaybackService : MediaSessionService() {
+class DeckPlaybackService : MediaSessionService() {
 
     private var mediaSession: MediaSession? = null
     private var player: ExoPlayer? = null

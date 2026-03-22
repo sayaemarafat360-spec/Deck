@@ -126,12 +126,18 @@ fun SettingsScreen(
     onStatsClick: () -> Unit,
     onSleepTimerClick: (() -> Unit)? = null,
     onRescan: (() -> Unit)? = null,
+    onGaplessChanged: ((Boolean) -> Unit)? = null,
+    onSmartSkipChanged: ((Boolean) -> Unit)? = null,
+    onCrossfadeChanged: ((Float) -> Unit)? = null,
+    initialGapless: Boolean = true,
+    initialSmartSkip: Boolean = false,
+    initialCrossfade: Float = 0f,
 ) {
     val context   = LocalContext.current
-    var gapless   by remember { mutableStateOf(true) }
-    var smartSkip by remember { mutableStateOf(false) }
+    var gapless   by remember { mutableStateOf(initialGapless) }
+    var smartSkip by remember { mutableStateOf(initialSmartSkip) }
     var dynColor  by remember { mutableStateOf(false) }
-    var crossfade by remember { mutableStateOf(3f) }
+    var crossfade by remember { mutableStateOf(initialCrossfade) }
 
     LazyColumn(contentPadding = PaddingValues(bottom = 160.dp), modifier = Modifier.fillMaxSize()) {
         item {
@@ -156,8 +162,7 @@ fun SettingsScreen(
                         Text("Unlock EQ, themes & no ads",
                             style = MaterialTheme.typography.titleMedium, color = Color.White)
                     }
-                    Box(Modifier.clip(RoundedCornerShape(12.dp))
-                        .background(Color.White.copy(0.2f))
+                    Box(Modifier.clip(RoundedCornerShape(12.dp)).background(Color.White.copy(0.2f))
                         .padding(horizontal = 16.dp, vertical = 8.dp)) {
                         Text("Upgrade", style = MaterialTheme.typography.labelLarge, color = Color.White)
                     }
@@ -166,7 +171,7 @@ fun SettingsScreen(
             Spacer(Modifier.height(24.dp))
         }
 
-        // ── Appearance ──
+        // Appearance
         item { SSection("Appearance") }
         item { STile("Dark Mode", Icons.Filled.DarkMode, NebulaViolet,
             trailing = { Switch(checked = isDark, onCheckedChange = { onToggleTheme() },
@@ -176,34 +181,41 @@ fun SettingsScreen(
                 colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = NebulaViolet)) }) }
         item { Spacer(Modifier.height(8.dp)) }
 
-        // ── Playback ──
+        // Playback
         item { SSection("Playback") }
         item { STile("Equalizer", Icons.Filled.Equalizer, NebulaCyan, "10-band EQ",
             trailing = { Icon(Icons.Filled.ChevronRight, null, tint = TextTertiaryDark) },
             onClick = onEqualizerClick) }
         item {
-            // Gapless - wired to actual ExoPlayer setting via callback
             STile("Gapless Playback", Icons.Filled.GraphicEq, NebulaGreen, "No silence between tracks",
-                trailing = { Switch(checked = gapless, onCheckedChange = { gapless = it },
-                    colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = NebulaViolet)) })
+                trailing = { Switch(checked = gapless, onCheckedChange = {
+                    gapless = it
+                    onGaplessChanged?.invoke(it)
+                }, colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = NebulaViolet)) })
         }
         item {
-            // Crossfade slider inline
+            // Real crossfade slider wired to callback
             Column(Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(Modifier.size(36.dp).clip(RoundedCornerShape(10.dp))
-                            .background(NebulaVioletLight.copy(0.15f)),
-                            contentAlignment = Alignment.Center) {
+                            .background(NebulaVioletLight.copy(0.15f)), contentAlignment = Alignment.Center) {
                             Icon(Icons.Filled.Shuffle, null, tint = NebulaVioletLight, modifier = Modifier.size(18.dp))
                         }
                         Spacer(Modifier.width(14.dp))
-                        Text("Crossfade", style = MaterialTheme.typography.bodyMedium, color = TextPrimaryDark)
+                        Column {
+                            Text("Crossfade", style = MaterialTheme.typography.bodyMedium, color = TextPrimaryDark)
+                            Text(if (crossfade == 0f) "Off" else "${crossfade.toInt()}s",
+                                style = MaterialTheme.typography.bodySmall, color = TextTertiaryDark)
+                        }
                     }
-                    Text("${crossfade.toInt()}s", style = MaterialTheme.typography.labelMedium, color = NebulaVioletLight)
+                    Text(if (crossfade == 0f) "Off" else "${crossfade.toInt()}s",
+                        style = MaterialTheme.typography.labelMedium, color = NebulaVioletLight)
                 }
-                Slider(value = crossfade, onValueChange = { crossfade = it },
-                    valueRange = 0f..10f, steps = 9,
+                Slider(value = crossfade, onValueChange = {
+                    crossfade = it
+                    onCrossfadeChanged?.invoke(it)
+                }, valueRange = 0f..10f, steps = 9,
                     colors = SliderDefaults.colors(activeTrackColor = NebulaVioletLight,
                         thumbColor = Color.White, inactiveTrackColor = DarkBorder),
                     modifier = Modifier.padding(start = 50.dp))
@@ -214,25 +226,29 @@ fun SettingsScreen(
             onClick = { onSleepTimerClick?.invoke() }) }
         item { Spacer(Modifier.height(8.dp)) }
 
-        // ── Library ──
+        // Library
         item { SSection("Library") }
-        item { STile("Rescan Media", Icons.Filled.Refresh, NebulaGreen, "Find new files",
+        item { STile("Rescan Media", Icons.Filled.Refresh, NebulaGreen, "Find new files on device",
             trailing = { Icon(Icons.Filled.ChevronRight, null, tint = TextTertiaryDark) },
             onClick = { onRescan?.invoke() }) }
         item { Spacer(Modifier.height(8.dp)) }
 
-        // ── Smart Features ──
+        // Smart Features
         item { SSection("Smart Features") }
-        item { STile("Smart Skip", Icons.Filled.Psychology, NebulaPink,
-            if (smartSkip) "Skips songs you never finish" else "Off — tracks your habits",
-            trailing = { Switch(checked = smartSkip, onCheckedChange = { smartSkip = it },
-                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = NebulaViolet)) }) }
-        item { STile("Listening Stats", Icons.Filled.BarChart, NebulaViolet, "Your weekly wrap",
+        item {
+            STile("Smart Skip", Icons.Filled.Psychology, NebulaPink,
+                if (smartSkip) "Auto-skips songs you repeatedly skip" else "Off — tap to enable",
+                trailing = { Switch(checked = smartSkip, onCheckedChange = {
+                    smartSkip = it
+                    onSmartSkipChanged?.invoke(it)
+                }, colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = NebulaViolet)) })
+        }
+        item { STile("Listening Stats", Icons.Filled.BarChart, NebulaViolet, "Your Deck Wrapped",
             trailing = { Icon(Icons.Filled.ChevronRight, null, tint = TextTertiaryDark) },
             onClick = onStatsClick) }
         item { Spacer(Modifier.height(8.dp)) }
 
-        // ── About ──
+        // About
         item { SSection("About") }
         item { STile("Version", Icons.Filled.Info, NebulaViolet, "Deck v1.0.0") }
         item {
@@ -240,11 +256,9 @@ fun SettingsScreen(
                 trailing = { Icon(Icons.Filled.OpenInNew, null, tint = TextTertiaryDark) },
                 onClick = {
                     try {
-                        val intent = Intent(Intent.ACTION_VIEW,
-                            Uri.parse("market://details?id=com.sayaem.nebula")).apply {
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        }
-                        context.startActivity(intent)
+                        context.startActivity(Intent(Intent.ACTION_VIEW,
+                            Uri.parse("market://details?id=com.sayaem.nebula"))
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                     } catch (_: Exception) {}
                 })
         }
@@ -258,7 +272,8 @@ fun SettingsScreen(
                             "Check out Deck — the ultimate media player! Download it on Google Play.")
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     }
-                    context.startActivity(Intent.createChooser(i, "Share via").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                    context.startActivity(Intent.createChooser(i, "Share via")
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 })
         }
     }

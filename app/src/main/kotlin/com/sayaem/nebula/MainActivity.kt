@@ -40,7 +40,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
         requestPermissions()
-        setContent { NebulaRoot(vm, onExitApp = { finish() }) }
+        setContent { DeckRoot(vm, onExitApp = { finish() }) }
     }
 
     private fun requestPermissions() {
@@ -58,7 +58,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun NebulaRoot(vm: MainViewModel, onExitApp: () -> Unit) {
+fun DeckRoot(vm: MainViewModel, onExitApp: () -> Unit) {
     val isDark       by vm.isDark.collectAsStateWithLifecycle()
     val songs        by vm.songs.collectAsStateWithLifecycle()
     val videos       by vm.videos.collectAsStateWithLifecycle()
@@ -73,6 +73,7 @@ fun NebulaRoot(vm: MainViewModel, onExitApp: () -> Unit) {
     val totalMin     by vm.totalMinutes.collectAsStateWithLifecycle()
     val listeningStats by vm.listeningStats.collectAsStateWithLifecycle()
 
+    var showOnboarding by remember { mutableStateOf(!vm.store.isOnboardingDone()) }
     var screenStack    by remember { mutableStateOf(listOf<Screen>(Screen.Home)) }
     val currentScreen   = screenStack.last()
     var showNowPlaying by remember { mutableStateOf(false) }
@@ -107,8 +108,17 @@ fun NebulaRoot(vm: MainViewModel, onExitApp: () -> Unit) {
         onDispose { backCallback.remove() }
     }
 
-    NebulaTheme(darkTheme = isDark) {
+    DeckTheme(darkTheme = isDark) {
         Box(Modifier.fillMaxSize().background(DarkBg)) {
+
+            // Onboarding — shown on first launch only
+            if (showOnboarding) {
+                OnboardingScreen(onDone = {
+                    vm.store.markOnboardingDone()
+                    showOnboarding = false
+                })
+                return@DeckTheme
+            }
             Scaffold(
                 containerColor = Color.Transparent,
                 bottomBar = {
@@ -121,7 +131,7 @@ fun NebulaRoot(vm: MainViewModel, onExitApp: () -> Unit) {
                                 onNext = { vm.player.next() },
                                 onExpand = { showNowPlaying = true })
                         }
-                        NebulaBottomNav(currentScreen) { navigateTo(it) }
+                        DeckBottomNav(currentScreen) { navigateTo(it) }
                     }
                 }
             ) { padding ->
@@ -163,11 +173,14 @@ fun NebulaRoot(vm: MainViewModel, onExitApp: () -> Unit) {
                         )
                         Screen.Settings -> SettingsScreen(
                             isDark = isDark, onToggleTheme = vm::toggleTheme,
-                            onEqualizerClick  = { showEqualizer = true },
-                            onPremiumClick    = { navigateTo(Screen.Premium) },
-                            onStatsClick      = { navigateTo(Screen.Stats) },
-                            onSleepTimerClick = { showSleepTimer = true },
-                            onRescan          = { vm.scanMedia() },
+                            onEqualizerClick   = { showEqualizer = true },
+                            onPremiumClick     = { navigateTo(Screen.Premium) },
+                            onStatsClick       = { navigateTo(Screen.Stats) },
+                            onSleepTimerClick  = { showSleepTimer = true },
+                            onRescan           = { vm.scanMedia() },
+                            onGaplessChanged   = { vm.setGapless(it) },
+                            onSmartSkipChanged = { vm.setSmartSkipEnabled(it) },
+                            onCrossfadeChanged = { vm.setCrossfade(it) },
                         )
                         Screen.Premium -> PremiumScreen(onBack = { navigateBack() })
                         Screen.Stats   -> StatsScreen(
@@ -249,7 +262,7 @@ fun NebulaRoot(vm: MainViewModel, onExitApp: () -> Unit) {
 }
 
 @Composable
-fun NebulaBottomNav(current: Screen, onNavigate: (Screen) -> Unit) {
+fun DeckBottomNav(current: Screen, onNavigate: (Screen) -> Unit) {
     val tabs = listOf(
         Triple(Screen.Home,     Icons.Filled.Home,         "Home"),
         Triple(Screen.Library,  Icons.Filled.LibraryMusic, "Library"),

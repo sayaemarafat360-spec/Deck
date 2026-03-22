@@ -12,12 +12,12 @@ import com.sayaem.nebula.MainActivity
 import com.sayaem.nebula.R
 import com.sayaem.nebula.data.models.Song
 
-class NebulaNotificationManager(private val context: Context) {
+class DeckNotificationManager(private val context: Context) {
 
     companion object {
-        const val CHANNEL_PLAYBACK    = "nebula_playback"
-        const val CHANNEL_ENGAGEMENT  = "nebula_engagement"
-        const val CHANNEL_PROMO       = "nebula_promo"
+        const val CHANNEL_PLAYBACK    = "deck_playback"
+        const val CHANNEL_ENGAGEMENT  = "deck_engagement"
+        const val CHANNEL_PROMO       = "deck_promo"
         const val NOTIF_PLAYBACK_ID   = 1
         const val NOTIF_RETURN_ID     = 2
         const val NOTIF_WEEKLY_ID     = 3

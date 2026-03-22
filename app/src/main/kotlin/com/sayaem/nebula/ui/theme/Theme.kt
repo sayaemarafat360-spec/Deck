@@ -64,7 +64,7 @@ private val LightColorScheme = lightColorScheme(
 )
 
 @Composable
-fun NebulaTheme(
+fun DeckTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
