@@ -284,11 +284,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             val app = getApplication<Application>()
             val file = java.io.File(song.filePath)
             val shareUri = if (file.exists()) {
-                // Share the actual audio/video file
                 androidx.core.content.FileProvider.getUriForFile(
                     app, "${app.packageName}.fileprovider", file)
             } else {
-                // Fallback: share by content URI
                 song.uri
             }
             val mimeType = when {
@@ -297,15 +295,16 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 song.filePath.endsWith(".m4a", true)  -> "audio/mp4"
                 else -> "audio/*"
             }
-            val i = Intent(Intent.ACTION_SEND).apply {
+            val intent = Intent(Intent.ACTION_SEND).apply {
                 type = mimeType
                 putExtra(Intent.EXTRA_STREAM, shareUri)
                 putExtra(Intent.EXTRA_SUBJECT, song.title)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-            app.startActivity(Intent.createChooser(i, "Share "${song.title}"")
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            val chooser = Intent.createChooser(intent, "Share")
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            app.startActivity(chooser)
         } catch (_: Exception) {}
     }
 

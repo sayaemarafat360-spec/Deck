@@ -22,6 +22,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.sayaem.nebula.data.models.Song
 import com.sayaem.nebula.ui.theme.*
+import com.sayaem.nebula.ui.components.AdMobBanner
 import java.util.Calendar
 
 @Composable
