@@ -60,7 +60,7 @@ fun AudioVisualizer(
                             magnitudes.value = bars
                         }
                     },
-                    16000  // 16kHz capture rate — good balance of CPU and responsiveness,
+                    16000, // 16kHz capture rate
                     false,
                     true   // FFT
                 )

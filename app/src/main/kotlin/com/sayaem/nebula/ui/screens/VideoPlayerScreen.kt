@@ -78,9 +78,13 @@ fun VideoPlayerScreen(
     var showSeekLabel   by remember { mutableStateOf(false) }
     var isLocked        by remember { mutableStateOf(false) }
     var showSubtitles   by remember { mutableStateOf(true) }
+    var videoScale      by remember { mutableStateOf(1f) }
+    var videoOffsetX    by remember { mutableStateOf(0f) }
+    var videoOffsetY    by remember { mutableStateOf(0f) }
+    var videoSpeed      by remember { mutableStateOf(1.0f) }
+    var showSpeed      by remember { mutableStateOf(false) }
 
-    // Pinch-to-zoom transformable state
-    val transformState = rememberTransformableState { zoomChange, offsetChange, _ ->
+    val transformState  = rememberTransformableState { zoomChange, offsetChange, _ ->
         videoScale = (videoScale * zoomChange).coerceIn(1f, 4f)
         if (videoScale > 1f) {
             videoOffsetX += offsetChange.x
@@ -95,11 +99,7 @@ fun VideoPlayerScreen(
         val base = video.filePath.substringBeforeLast(".")
         listOf("$base.srt", "$base.SRT").firstOrNull { java.io.File(it).exists() }
     }
-    var videoScale      by remember { mutableStateOf(1f) }
-    var videoOffsetX    by remember { mutableStateOf(0f) }
-    var videoOffsetY    by remember { mutableStateOf(0f) }
-    var videoSpeed      by remember { mutableStateOf(1.0f) }
-    var showSpeed       by remember { mutableStateOf(false) }
+
     var swipeDownY      by remember { mutableStateOf(0f) }
 
     val aspectLabels = listOf("16:9", "4:3", "Fit", "Zoom")
@@ -141,18 +141,6 @@ fun VideoPlayerScreen(
             delay(1500)
             showBrightness = false
             showVolume     = false
-        }
-    }
-
-    // Restore on exit
-    // Pinch-to-zoom
-    val transformState = rememberTransformableState { zoomChange, offsetChange, _ ->
-        videoScale = (videoScale * zoomChange).coerceIn(1f, 4f)
-        if (videoScale > 1f) {
-            videoOffsetX += offsetChange.x
-            videoOffsetY += offsetChange.y
-        } else {
-            videoOffsetX = 0f; videoOffsetY = 0f
         }
     }
 
