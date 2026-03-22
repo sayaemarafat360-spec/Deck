@@ -141,3 +141,76 @@ class MediaRepository(private val context: Context) {
         }
     }
 }
+
+    // ── Tag Editor: update title/artist/album via MediaStore ──────────
+    suspend fun updateTags(
+        context: android.content.Context,
+        song: com.sayaem.nebula.data.models.Song,
+        title: String,
+        artist: String,
+        album: String,
+    ): Boolean = withContext(Dispatchers.IO) {
+        return@withContext try {
+            val values = android.content.ContentValues().apply {
+                put(android.provider.MediaStore.Audio.Media.TITLE, title.trim())
+                put(android.provider.MediaStore.Audio.Media.ARTIST, artist.trim())
+                put(android.provider.MediaStore.Audio.Media.ALBUM, album.trim())
+            }
+            val updated = context.contentResolver.update(
+                android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                values,
+                "${android.provider.MediaStore.Audio.Media._ID} = ?",
+                arrayOf(song.id.toString())
+            )
+            updated > 0
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    // ── Recently Added: songs added in last N days ────────────────────
+    suspend fun getRecentlyAdded(days: Int = 7): List<com.sayaem.nebula.data.models.Song> =
+        withContext(Dispatchers.IO) {
+            val cutoff = System.currentTimeMillis() / 1000 - (days * 86400)
+            val uri    = android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+            val proj   = arrayOf(
+                android.provider.MediaStore.Audio.Media._ID,
+                android.provider.MediaStore.Audio.Media.TITLE,
+                android.provider.MediaStore.Audio.Media.ARTIST,
+                android.provider.MediaStore.Audio.Media.ALBUM,
+                android.provider.MediaStore.Audio.Media.DURATION,
+                android.provider.MediaStore.Audio.Media.SIZE,
+                android.provider.MediaStore.Audio.Media.DATA,
+                android.provider.MediaStore.Audio.Media.DATE_ADDED,
+            )
+            val sel  = "${android.provider.MediaStore.Audio.Media.DATE_ADDED} >= ?"
+            val args = arrayOf(cutoff.toString())
+            val sort = "${android.provider.MediaStore.Audio.Media.DATE_ADDED} DESC"
+            val results = mutableListOf<com.sayaem.nebula.data.models.Song>()
+            try {
+                context.contentResolver.query(uri, proj, sel, args, sort)?.use { cursor ->
+                    val idCol     = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media._ID)
+                    val titleCol  = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.TITLE)
+                    val artistCol = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.ARTIST)
+                    val albumCol  = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.ALBUM)
+                    val durCol    = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.DURATION)
+                    val sizeCol   = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.SIZE)
+                    val pathCol   = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.DATA)
+                    while (cursor.moveToNext()) {
+                        val id  = cursor.getLong(idCol)
+                        val cUri = android.net.Uri.withAppendedPath(
+                            android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id.toString())
+                        results.add(com.sayaem.nebula.data.models.Song(
+                            id = id, title = cursor.getString(titleCol) ?: "Unknown",
+                            artist = cursor.getString(artistCol) ?: "Unknown",
+                            album  = cursor.getString(albumCol) ?: "Unknown",
+                            uri    = cUri, duration = cursor.getLong(durCol),
+                            size   = cursor.getLong(sizeCol),
+                            albumArtUri = null, filePath = cursor.getString(pathCol) ?: "",
+                        ))
+                    }
+                }
+            } catch (e: Exception) { e.printStackTrace() }
+            results
+        }

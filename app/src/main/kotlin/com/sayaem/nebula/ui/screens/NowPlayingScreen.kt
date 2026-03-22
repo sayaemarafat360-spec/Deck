@@ -2,10 +2,13 @@ package com.sayaem.nebula.ui.screens
 
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.*
+import androidx.compose.ui.geometry.*
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.gestures.*
+import androidx.compose.ui.input.pointer.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.*
 import androidx.compose.material.icons.Icons
@@ -21,9 +24,6 @@ import com.sayaem.nebula.data.models.RepeatMode
 import com.sayaem.nebula.data.models.Song
 import com.sayaem.nebula.ui.components.PlayingIndicator
 import com.sayaem.nebula.ui.theme.*
-
-
-
 
 @Composable
 fun NowPlayingScreen(
@@ -44,6 +44,7 @@ fun NowPlayingScreen(
     isFavorite: Boolean = false,
     onToggleFavorite: (Song) -> Unit,
     onQueueSeekTo: ((Int) -> Unit)? = null,
+    onEditTag: ((Song) -> Unit)? = null,
 ) {
     val song = state.currentSong
 
@@ -139,19 +140,15 @@ fun NowPlayingScreen(
 
             Spacer(Modifier.height(20.dp))
 
-            // Seek bar
-            Column {
-                Slider(value = state.progress, onValueChange = onSeek,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = SliderDefaults.colors(thumbColor = Color.White,
-                        activeTrackColor = NebulaViolet, inactiveTrackColor = DarkBorder))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(formatMs(state.position), style = MaterialTheme.typography.labelSmall,
-                        color = TextTertiaryDark)
-                    Text(formatMs(state.duration), style = MaterialTheme.typography.labelSmall,
-                        color = TextTertiaryDark)
-                }
-            }
+            // Waveform seek bar
+            WaveformSeekBar(
+                progress = state.progress,
+                onSeek   = onSeek,
+                position = state.position,
+                duration = state.duration,
+                songId   = state.currentSong?.id ?: 0L,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 0.dp),
+            )
 
             Spacer(Modifier.height(20.dp))
 
@@ -203,10 +200,20 @@ fun NowPlayingScreen(
                 ExtraBtn(Icons.Filled.Speed, "${currentSpeed}x", onClick = onSpeedClick)
                 ExtraBtn(Icons.Filled.Share, "Share",
                     onClick = { song?.let { onShare(it) } })
-                ExtraBtn(Icons.Filled.Lyrics, "Lyrics", onClick = {})
+                ExtraBtn(Icons.Filled.Edit, "Edit Tags", onClick = { state.currentSong?.let { onEditTag?.invoke(it) } })
             }
         }
     }
+    // Queue sheet overlay
+    if (showQueue) {
+        QueueSheet(
+            queue      = state.queue,
+            currentIdx = state.queueIndex,
+            onSeekTo   = { idx -> onQueueSeekTo?.invoke(idx); showQueue = false },
+            onDismiss  = { showQueue = false }
+        )
+    }
+
 }
 
 @Composable
@@ -250,16 +257,6 @@ private fun formatMs(ms: Long): String {
     val m = (ms / 60000).toString().padStart(2, '0')
     val s = ((ms % 60000) / 1000).toString().padStart(2, '0')
     return "$m:$s"
-    // Fix 7: Queue sheet
-    if (showQueue) {
-        QueueSheet(
-            queue      = state.queue,
-            currentIdx = state.queueIndex,
-            onSeekTo   = { idx -> onQueueSeekTo?.invoke(idx); showQueue = false },
-            onDismiss  = { showQueue = false }
-        )
-    }
-
 }
 
 @Composable
@@ -350,6 +347,101 @@ fun QueueSheet(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun WaveformSeekBar(
+    progress: Float,
+    onSeek: (Float) -> Unit,
+    position: Long,
+    duration: Long,
+    songId: Long,
+    modifier: Modifier = Modifier,
+) {
+    // Generate pseudo-waveform bars seeded by songId so each song looks unique
+    val bars = remember(songId) {
+        val rng = java.util.Random(songId)
+        List(60) { 0.15f + rng.nextFloat() * 0.85f }
+    }
+
+    Column(modifier = modifier) {
+        // Waveform canvas with drag-to-seek
+        var isDragging by remember { mutableStateOf(false) }
+        var dragProgress by remember { mutableStateOf(progress) }
+        val displayProgress = if (isDragging) dragProgress else progress
+
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .pointerInput(Unit) {
+                    detectDragGestures(
+                        onDragStart = { pos ->
+                            isDragging   = true
+                            dragProgress = (pos.x / size.width).coerceIn(0f, 1f)
+                        },
+                        onDrag = { _, drag ->
+                            dragProgress = (dragProgress + drag.x / size.width).coerceIn(0f, 1f)
+                        },
+                        onDragEnd = {
+                            onSeek(dragProgress)
+                            isDragging = false
+                        },
+                        onDragCancel = { isDragging = false }
+                    )
+                }
+                .pointerInput(Unit) {
+                    detectTapGestures { offset ->
+                        onSeek((offset.x / size.width).coerceIn(0f, 1f))
+                    }
+                }
+        ) {
+            Canvas(Modifier.fillMaxSize()) {
+                val barW    = size.width / bars.size
+                val centerY = size.height / 2f
+                val maxH    = size.height * 0.9f
+
+                bars.forEachIndexed { i, amp ->
+                    val x       = i * barW + barW / 2f
+                    val barFrac = x / size.width
+                    val h       = amp * maxH
+                    val played  = barFrac <= displayProgress
+
+                    // Bar color: played = violet, unplayed = dark
+                    val color = if (played) NebulaViolet else DarkBorder
+
+                    drawRoundRect(
+                        color       = color,
+                        topLeft     = androidx.compose.ui.geometry.Offset(x - barW * 0.3f, centerY - h / 2),
+                        size        = androidx.compose.ui.geometry.Size(barW * 0.55f, h),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(barW * 0.3f),
+                    )
+                }
+
+                // Playhead thumb
+                val thumbX = displayProgress * size.width
+                drawCircle(
+                    color  = Color.White,
+                    radius = 6.dp.toPx(),
+                    center = androidx.compose.ui.geometry.Offset(thumbX, centerY)
+                )
+            }
+        }
+
+        // Time labels
+        Row(Modifier.fillMaxWidth().padding(top = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(formatMs(position), style = MaterialTheme.typography.labelSmall,
+                color = TextTertiaryDark)
+            if (isDragging) {
+                Text(formatMs((dragProgress * duration).toLong()),
+                    style = MaterialTheme.typography.labelSmall, color = NebulaViolet,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+            }
+            Text(formatMs(duration), style = MaterialTheme.typography.labelSmall,
+                color = TextTertiaryDark)
         }
     }
 }

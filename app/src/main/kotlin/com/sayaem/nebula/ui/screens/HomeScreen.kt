@@ -3,7 +3,10 @@ package com.sayaem.nebula.ui.screens
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.*
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
+import androidx.compose.foundation.gestures.*
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.*
@@ -19,9 +22,6 @@ import com.sayaem.nebula.data.models.Song
 import com.sayaem.nebula.ui.theme.*
 import java.util.Calendar
 
-
-
-
 @Composable
 fun HomeScreen(
     songs: List<Song>,
@@ -31,6 +31,8 @@ fun HomeScreen(
     onVideoClick: (Song) -> Unit,
     onPremiumClick: () -> Unit,
     onStatsClick: () -> Unit,
+    onEditTag: ((Song) -> Unit)? = null,
+    recentlyAdded: List<Song> = emptyList(),
 ) {
     val hour = remember { Calendar.getInstance().get(Calendar.HOUR_OF_DAY) }
     val greeting = when (hour) {
@@ -103,6 +105,31 @@ fun HomeScreen(
                 ) {
                     items(videos.take(10)) { video ->
                         VideoCard(video = video, onClick = { onVideoClick(video) })
+                    }
+                }
+            }
+        }
+
+        // ── Recently Added ──────────────────────────────────────────────
+        if (recentlyAdded.isNotEmpty()) {
+            item {
+                Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.FiberNew, null, tint = NebulaGreen, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Recently Added", style = MaterialTheme.typography.headlineSmall,
+                            color = TextPrimaryDark, fontWeight = FontWeight.Bold)
+                    }
+                    Text("Last 7 days", style = MaterialTheme.typography.labelMedium, color = TextTertiaryDark)
+                }
+            }
+            item {
+                LazyRow(contentPadding = PaddingValues(horizontal = 20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    items(recentlyAdded.take(10)) { song ->
+                        RecentCard(song = song, onClick = { onSongClick(song) })
                     }
                 }
             }
@@ -281,7 +308,11 @@ private fun SongRow(song: Song, onClick: () -> Unit) {
     val colors = listOf(NebulaViolet, NebulaPink, NebulaCyan, NebulaAmber, NebulaGreen)
     val color  = colors[(song.id % colors.size).toInt().let { if (it < 0) -it else it }]
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick)
+        Modifier.fillMaxWidth()
+            .combinedClickable(
+                onClick  = onClick,
+                onLongClick = { onEditTag?.invoke(song) }
+            )
             .padding(horizontal = 20.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

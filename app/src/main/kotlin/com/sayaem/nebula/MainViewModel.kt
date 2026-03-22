@@ -7,6 +7,7 @@ import android.media.audiofx.Equalizer
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.*
+import com.sayaem.nebula.worker.ReEngagementWorker
 import com.sayaem.nebula.data.local.LocalDataStore
 import com.sayaem.nebula.data.models.Playlist
 import com.sayaem.nebula.data.models.Song
@@ -17,8 +18,6 @@ import com.sayaem.nebula.ui.screens.SleepTimerState
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import java.util.concurrent.TimeUnit
-
-
 
 class MainViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -74,6 +73,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         all.filter { it.id in favIds }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
+    // Recently added - real MediaStore DATE_ADDED query
+    private val _recentlyAdded = MutableStateFlow<List<Song>>(emptyList())
+    val recentlyAdded = _recentlyAdded.asStateFlow()
+
     val folders: StateFlow<Map<String, List<Song>>> = songs.map { list ->
         list.groupBy { song ->
             val parts = song.filePath.split("/")
@@ -101,6 +104,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     init {
         scanMedia()
         scheduleNotifications()
+        loadRecentlyAdded()
 
         // Fix 2: Wire audio session callback from service
         player.onAudioSessionReady = { sessionId ->
@@ -269,6 +273,21 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         } catch (_: Exception) {}
     }
 
+    // ── New: Recently added ──────────────────────────────────────────
+    private fun loadRecentlyAdded() = viewModelScope.launch {
+        _recentlyAdded.value = repo.getRecentlyAdded(7)
+    }
+
+    // ── New: Tag Editor ───────────────────────────────────────────────
+    fun updateTags(song: Song, title: String, artist: String, album: String,
+                   onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            val ok = repo.updateTags(getApplication(), song, title, artist, album)
+            if (ok) { scanMedia(); loadRecentlyAdded() }
+            onResult(ok)
+        }
+    }
+
     // ── Fix 4: Settings — all applied immediately ─────────────────────
     fun setGapless(enabled: Boolean) {
         store.setGapless(enabled)
@@ -324,7 +343,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             "Electronic"  to listOf(4f, 3f, 0f,-2f,-2f, 0f, 3f, 4f, 4f, 5f),
             "Hip-Hop"     to listOf(5f, 4f, 2f, 0f,-1f,-1f, 0f, 2f, 3f, 3f),
             "Vocal"       to listOf(-2f, 0f, 2f, 4f, 5f, 4f, 2f, 0f, 0f,-1f),
-            "Treble Boost"to listOf(0f, 0f, 0f, 0f, 0f, 2f, 4f, 5f, 6f, 6f),
+            "Treble Boost" to listOf(0f, 0f, 0f, 0f, 0f, 2f, 4f, 5f, 6f, 6f),
         )
     }
 }

@@ -10,6 +10,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -26,8 +27,6 @@ import com.sayaem.nebula.ui.Screen
 import com.sayaem.nebula.ui.components.MiniPlayer
 import com.sayaem.nebula.ui.screens.*
 import com.sayaem.nebula.ui.theme.*
-
-
 
 class MainActivity : ComponentActivity() {
 
@@ -73,7 +72,8 @@ fun DeckRoot(vm: MainViewModel) {
     val recentSongs  by vm.recentSongs.collectAsStateWithLifecycle()
     val topSongs     by vm.topSongs.collectAsStateWithLifecycle()
     val totalMin     by vm.totalMinutes.collectAsStateWithLifecycle()
-    val listeningStats by vm.listeningStats.collectAsStateWithLifecycle()
+    val listeningStats    by vm.listeningStats.collectAsStateWithLifecycle()
+    val recentlyAdded     by vm.recentlyAdded.collectAsStateWithLifecycle()
     val eqState      by vm.eqState.collectAsStateWithLifecycle()
     val sleepTimer   by vm.sleepTimer.collectAsStateWithLifecycle()
     val speed        by vm.playbackSpeed.collectAsStateWithLifecycle()
@@ -86,6 +86,7 @@ fun DeckRoot(vm: MainViewModel) {
     var showSpeed      by remember { mutableStateOf(false) }
     var videoSong      by remember { mutableStateOf<Song?>(null) }
     var showOnboarding by remember { mutableStateOf<Boolean>(!vm.store.isOnboardingDone()) }
+    var editingTagSong by remember { mutableStateOf<com.sayaem.nebula.data.models.Song?>(null) }
 
     // ── Back button — using BackHandler composable (more reliable) ────
     // Order matters: innermost overlay handled first
@@ -149,6 +150,8 @@ fun DeckRoot(vm: MainViewModel) {
                             videos      = videos,
                             recentSongs = recentSongs,
                             onSongClick  = { vm.playSong(it); showNowPlaying = true },
+                            onEditTag    = { editingTagSong = it },
+                            recentlyAdded = recentlyAdded,
                             onVideoClick = { song ->
                                 videoSong = song
                                 vm.player.playQueue(listOf(song), 0)
@@ -228,6 +231,7 @@ fun DeckRoot(vm: MainViewModel) {
                     onSpeedClick     = { showSpeed = true },
                     onShare          = { vm.shareSong(it) },
                     onToggleFavorite  = { vm.toggleFavorite(it) },
+                    onEditTag         = { editingTagSong = it },
                     onQueueSeekTo     = { vm.player.seekToIndex(it) },
                 )
             }
@@ -262,6 +266,17 @@ fun DeckRoot(vm: MainViewModel) {
                     current   = speed,
                     onSelect  = { vm.setSpeed(it) },
                     onDismiss = { showSpeed = false }
+                )
+            }
+
+            // ── Tag Editor ───────────────────────────────────────────
+            editingTagSong?.let { song ->
+                TagEditorScreen(
+                    song   = song,
+                    onSave = { t, ar, al ->
+                        vm.updateTags(song, t, ar, al) { editingTagSong = null }
+                    },
+                    onBack = { editingTagSong = null }
                 )
             }
 
