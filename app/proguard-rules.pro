@@ -1,3 +1,0 @@
--keep class com.sayaem.nebula.** { *; }
--keepattributes *Annotation*
--dontwarn okhttp3.**
