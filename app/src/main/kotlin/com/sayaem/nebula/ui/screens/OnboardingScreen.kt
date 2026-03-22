@@ -260,6 +260,7 @@ fun PlayIllustration(pulse: Float, rotate: Float) {
 // ─── Illustration 2: Equalizer ───────────────────────────────────────
 @Composable
 fun EqIllustration(wave: Float, pulse: Float) {
+    val appColors = LocalAppColors.current
     Canvas(Modifier.fillMaxSize()) {
         val cx = size.width / 2
         val cy = size.height / 2
@@ -311,9 +312,9 @@ fun EqIllustration(wave: Float, pulse: Float) {
             center = androidx.compose.ui.geometry.Offset(hcx - 50f, hcy))
         drawCircle(NebulaCyan, radius = 16f,
             center = androidx.compose.ui.geometry.Offset(hcx + 50f, hcy))
-        drawCircle(LocalAppColors.current.bg, radius = 10f,
+        drawCircle(appColors.bg, radius = 10f,
             center = androidx.compose.ui.geometry.Offset(hcx - 50f, hcy))
-        drawCircle(LocalAppColors.current.bg, radius = 10f,
+        drawCircle(appColors.bg, radius = 10f,
             center = androidx.compose.ui.geometry.Offset(hcx + 50f, hcy))
     }
 }
