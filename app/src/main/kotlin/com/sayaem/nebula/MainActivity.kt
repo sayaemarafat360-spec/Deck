@@ -10,6 +10,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.animation.*
+import android.widget.Toast
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -74,6 +76,14 @@ fun DeckRoot(vm: MainViewModel) {
     val totalMin     by vm.totalMinutes.collectAsStateWithLifecycle()
     val listeningStats    by vm.listeningStats.collectAsStateWithLifecycle()
     val recentlyAdded     by vm.recentlyAdded.collectAsStateWithLifecycle()
+    val audioSessionId    by vm.audioSessionId.collectAsStateWithLifecycle()
+
+    // Backend state
+    val backendUser    by vm.backend.user.collectAsStateWithLifecycle()
+    val isPremium      by vm.backend.isPremium.collectAsStateWithLifecycle()
+    val prices         by vm.backend.prices.collectAsStateWithLifecycle()
+    val backendMsg     by vm.backend.message.collectAsStateWithLifecycle()
+    val isSyncing      by vm.backend.isSyncing.collectAsStateWithLifecycle()
     val eqState      by vm.eqState.collectAsStateWithLifecycle()
     val sleepTimer   by vm.sleepTimer.collectAsStateWithLifecycle()
     val speed        by vm.playbackSpeed.collectAsStateWithLifecycle()
@@ -86,7 +96,28 @@ fun DeckRoot(vm: MainViewModel) {
     var showSpeed      by remember { mutableStateOf(false) }
     var videoSong      by remember { mutableStateOf<Song?>(null) }
     var showOnboarding by remember { mutableStateOf<Boolean>(!vm.store.isOnboardingDone()) }
-    var editingTagSong by remember { mutableStateOf<com.sayaem.nebula.data.models.Song?>(null) }
+
+    // Pull cloud data once on startup if signed in
+    LaunchedEffect(backendUser) {
+        if (backendUser != null) {
+            vm.backend.pullAndMerge(
+                onFavorites = { cloudFavs ->
+                    // Merge: cloud wins on sign-in, local is already in store
+                    cloudFavs.forEach { id -> vm.store.prefs.edit()
+                        .putStringSet("fav_synced", cloudFavs.map { it.toString() }.toSet()).apply() }
+                },
+                onPlaylists = { cloudPlaylists ->
+                    // Only import if cloud has more playlists (simple merge strategy)
+                    if (cloudPlaylists.size > vm.store.getPlaylists().size) {
+                        vm.store.savePlaylists(cloudPlaylists)
+                        vm.playlists  // trigger recompose via ViewModel
+                    }
+                }
+            )
+        }
+    }
+    var editingTagSong  by remember { mutableStateOf<com.sayaem.nebula.data.models.Song?>(null) }
+    var optionsSong     by remember { mutableStateOf<com.sayaem.nebula.data.models.Song?>(null) }
 
     // ── Back button — using BackHandler composable (more reliable) ────
     // Order matters: innermost overlay handled first
@@ -107,6 +138,15 @@ fun DeckRoot(vm: MainViewModel) {
     }
     // When on Home tab and nothing is open — do nothing (let system handle = minimize)
     // No BackHandler needed for bottom nav tabs since we don't stack them
+
+    // Show backend messages (sign-in result, premium granted, etc.)
+    val context = androidx.compose.ui.platform.LocalContext.current
+    LaunchedEffect(backendMsg) {
+        backendMsg?.let {
+            android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_LONG).show()
+            vm.backend.clearMessage()
+        }
+    }
 
     DeckTheme(darkTheme = isDark) {
         Box(Modifier.fillMaxSize().background(DarkBg)) {
@@ -151,6 +191,7 @@ fun DeckRoot(vm: MainViewModel) {
                             recentSongs = recentSongs,
                             onSongClick  = { vm.playSong(it); showNowPlaying = true },
                             onEditTag    = { editingTagSong = it },
+                            onMoreClick  = { optionsSong = it },
                             recentlyAdded = recentlyAdded,
                             onVideoClick = { song ->
                                 videoSong = song
@@ -163,6 +204,7 @@ fun DeckRoot(vm: MainViewModel) {
                             songs    = songs, videos = videos,
                             currentSong = playback.currentSong,
                             isPlaying   = playback.isPlaying,
+                            onMoreClick = { optionsSong = it },
                             favorites   = favorites,
                             playlists   = playlists,
                             folders     = folders,
@@ -196,7 +238,13 @@ fun DeckRoot(vm: MainViewModel) {
                             onSmartSkipChanged = { vm.setSmartSkipEnabled(it) },
                             onCrossfadeChanged = { vm.setCrossfade(it) },
                         )
-                        Screen.Premium -> PremiumScreen(onBack = { currentTab = Screen.Home })
+                        Screen.Premium -> PremiumScreen(
+                            onBack       = { currentTab = Screen.Home },
+                            isPremium    = isPremium,
+                            premiumPlan  = vm.backend.premiumPlan.collectAsStateWithLifecycle().value,
+                            prices       = prices,
+                            onPurchase   = { plan -> vm.backend.grantPremium(plan) },
+                        )
                         Screen.Stats   -> StatsScreen(
                             songs = songs, stats = listeningStats,
                             topSongs = topSongs, totalMinutes = totalMin,
@@ -233,6 +281,7 @@ fun DeckRoot(vm: MainViewModel) {
                     onToggleFavorite  = { vm.toggleFavorite(it) },
                     onEditTag         = { editingTagSong = it },
                     onQueueSeekTo     = { vm.player.seekToIndex(it) },
+                    audioSessionId    = audioSessionId,
                 )
             }
 
@@ -266,6 +315,26 @@ fun DeckRoot(vm: MainViewModel) {
                     current   = speed,
                     onSelect  = { vm.setSpeed(it) },
                     onDismiss = { showSpeed = false }
+                )
+            }
+
+            // ── Song Options Sheet (3-dot) ────────────────────────────
+            optionsSong?.let { song ->
+                val favs by vm.favorites.collectAsStateWithLifecycle()
+                SongOptionsSheet(
+                    song                   = song,
+                    isFavorite             = song.id in favs,
+                    playlists              = playlists,
+                    onDismiss              = { optionsSong = null },
+                    onPlayNow              = { vm.playSong(song); showNowPlaying = true },
+                    onPlayNext             = { vm.playNext(song) },
+                    onAddToQueue           = { vm.addToQueue(song) },
+                    onAddToPlaylist        = { pid -> vm.addSongToPlaylist(pid, song.id) },
+                    onCreateAndAddPlaylist = { name -> vm.createPlaylistAndAddSong(name, song) },
+                    onToggleFavorite       = { vm.toggleFavorite(song) },
+                    onEditTags             = { editingTagSong = song; optionsSong = null },
+                    onShare                = { vm.shareSong(song) },
+                    onDelete               = { vm.deleteSong(song) {} },
                 )
             }
 

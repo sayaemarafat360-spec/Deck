@@ -24,6 +24,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val repo    = MediaRepository(app)
     val player  = PlayerController(app)
     val store   = LocalDataStore(app)
+    val backend = com.sayaem.nebula.backend.BackendViewModel(app)
 
     val songs      = repo.songs.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
     val videos     = repo.videos.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -62,6 +63,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     // Fix 4: Read settings from prefs on init
     private val _smartSkipEnabled = MutableStateFlow(store.getSmartSkip())
+    private val _audioSessionId   = MutableStateFlow(0)
+    val audioSessionId = _audioSessionId.asStateFlow()
 
     val recentSongs: StateFlow<List<Song>> = combine(songs, _playStats) { allSongs, _ ->
         val ids = store.getRecentIds()
@@ -109,6 +112,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         // Fix 2: Wire audio session callback from service
         player.onAudioSessionReady = { sessionId ->
             currentAudioSessionId = sessionId
+            _audioSessionId.value = sessionId
             viewModelScope.launch(Dispatchers.IO) {
                 initEqualizerWithSession(sessionId)
             }
@@ -214,7 +218,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     // ── Favorites ─────────────────────────────────────────────────────
-    fun toggleFavorite(song: Song) { store.toggleFavorite(song.id); _favorites.value = store.getFavorites() }
+    fun toggleFavorite(song: Song) {
+        store.toggleFavorite(song.id)
+        _favorites.value = store.getFavorites()
+        // Push to cloud in background if signed in
+        backend.syncFavoritesUp(_favorites.value)
+    }
     fun isFavorite(id: Long) = id in _favorites.value
 
     // ── Playlists ─────────────────────────────────────────────────────
@@ -224,7 +233,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun addSongToPlaylist(pid: String, sid: Long)           { store.addSongToPlaylist(pid, sid); refresh() }
     fun removeSongFromPlaylist(pid: String, sid: Long)      { store.removeSongFromPlaylist(pid, sid); refresh() }
     fun getPlaylistSongs(pl: Playlist): List<Song>          = songs.value.associateBy { it.id }.let { m -> pl.songIds.mapNotNull { m[it] } }
-    private fun refresh()                                   { _playlists.value = store.getPlaylists() }
+    private fun refresh() {
+        _playlists.value = store.getPlaylists()
+        // Push to cloud in background if signed in
+        backend.syncPlaylistsUp(_playlists.value)
+    }
 
     // ── Speed ─────────────────────────────────────────────────────────
     fun setSpeed(s: Float) { _speed.value = s; player.setSpeed(s) }
@@ -289,6 +302,26 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     // ── Fix 4: Settings — all applied immediately ─────────────────────
+    // ── Play queue helpers ────────────────────────────────────────────
+    fun playNext(song: Song)    { player.playNext(song) }
+    fun addToQueue(song: Song)  { player.addToQueue(song) }
+
+    // ── Delete file from device ───────────────────────────────────────
+    fun deleteSong(song: Song, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            val ok = com.sayaem.nebula.ui.screens.deleteSong(getApplication(), song)
+            if (ok) scanMedia()
+            onResult(ok)
+        }
+    }
+
+    // ── Create playlist and add song in one step ──────────────────────
+    fun createPlaylistAndAddSong(name: String, song: Song) {
+        val pl = store.createPlaylist(name)
+        store.addSongToPlaylist(pl.id, song.id)
+        _playlists.value = store.getPlaylists()
+    }
+
     fun setGapless(enabled: Boolean) {
         store.setGapless(enabled)
         // ExoPlayer handles gapless natively when tracks share the same format

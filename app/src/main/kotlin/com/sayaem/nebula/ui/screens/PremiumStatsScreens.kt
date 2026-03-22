@@ -23,12 +23,18 @@ import com.sayaem.nebula.ui.theme.*
 
 // ─── Premium Screen ───────────────────────────────────────────────────
 @Composable
-fun PremiumScreen(onBack: () -> Unit) {
+fun PremiumScreen(
+    onBack: () -> Unit,
+    isPremium: Boolean = false,
+    premiumPlan: String = "none",
+    prices: com.sayaem.nebula.backend.PriceConfig = com.sayaem.nebula.backend.PriceConfig(),
+    onPurchase: (String) -> Unit = {},
+) {
     var selectedPlan by remember { mutableStateOf(1) }
     val plans = listOf(
-        Triple("Monthly",  "\$1.99",  "per month"),
-        Triple("Yearly",   "\$3.99",  "per year"),
-        Triple("Lifetime", "\$5.99",  "one-time"),
+        Triple("Monthly",  "\$${prices.monthly}",  "per month · \$${String.format("%.2f", prices.monthly.toFloatOrNull()?.times(12) ?: 23.88f)}/yr"),
+        Triple("Yearly",   "\$${prices.yearly}",  "per year · save ${prices.yearlySavings}%"),
+        Triple("Lifetime", "\$${prices.lifetime}", "one-time · = ${prices.lifetimeYears} yrs yearly"),
     )
     val features = listOf(
         Triple("Pro 10-Band Equalizer",   Icons.Filled.Equalizer,    NebulaCyan),
@@ -45,6 +51,25 @@ fun PremiumScreen(onBack: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
                 Icon(Icons.Filled.Close, null, tint = TextPrimaryDark)
+            }
+        }
+
+        if (isPremium) {
+            Box(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(NebulaGreen.copy(0.15f))
+                .border(1.dp, NebulaGreen.copy(0.3f), RoundedCornerShape(14.dp))
+                .padding(14.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.CheckCircle, null, tint = NebulaGreen, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(10.dp))
+                    Column {
+                        Text("You have Deck Premium", style = MaterialTheme.typography.titleSmall,
+                            color = NebulaGreen, fontWeight = FontWeight.Bold)
+                        Text("Plan: ${premiumPlan.replaceFirstChar { it.uppercase() }}",
+                            style = MaterialTheme.typography.bodySmall, color = TextSecondaryDark)
+                    }
+                }
             }
         }
 
@@ -109,13 +134,30 @@ fun PremiumScreen(onBack: () -> Unit) {
         Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)
             .clip(RoundedCornerShape(30.dp))
             .background(Brush.linearGradient(listOf(NebulaViolet, NebulaPink)))
-            .clickable {}.padding(vertical = 18.dp),
+            .clickable { if (!isPremium) onPurchase(listOf("monthly","yearly","lifetime")[selectedPlan]) }.padding(vertical = 18.dp),
             contentAlignment = Alignment.Center) {
             Text("Start ${plans[selectedPlan].first} — ${plans[selectedPlan].second}",
                 style = MaterialTheme.typography.labelLarge, color = Color.White, fontWeight = FontWeight.Bold)
         }
+        // Promo banner from Remote Config
+        if (prices.showPromoBanner && prices.promoText.isNotBlank()) {
+            Spacer(Modifier.height(8.dp))
+            Box(Modifier.fillMaxWidth().padding(horizontal = 20.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(NebulaAmber.copy(0.15f))
+                .border(1.dp, NebulaAmber.copy(0.4f), RoundedCornerShape(12.dp))
+                .padding(12.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.LocalOffer, null, tint = NebulaAmber, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(10.dp))
+                    Text(prices.promoText, style = MaterialTheme.typography.labelMedium,
+                        color = TextPrimaryDark, fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
+
         Spacer(Modifier.height(12.dp))
-        Text("7-day free trial • Cancel anytime • No hidden fees",
+        Text("Cancel anytime • Secure payment • Premium never expires for lifetime",
             style = MaterialTheme.typography.bodySmall, color = TextTertiaryDark,
             modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
         Spacer(Modifier.height(40.dp))

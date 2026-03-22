@@ -198,6 +198,28 @@ class LocalDataStore(context: Context) {
     fun getSmartSkip(): Boolean = prefs.getBoolean("smart_skip", false)
     fun getCrossfade(): Float = prefs.getFloat("crossfade", 0f)
 
+
+    // ─── Local premium cache (works offline) ──────────────────────────
+    fun saveLocalPremium(plan: String, expiresAt: Long) {
+        prefs.edit()
+            .putString("premium_plan", plan)
+            .putLong("premium_expires_at", expiresAt)
+            .apply()
+    }
+
+    fun getLocalPremiumPlan(): String = prefs.getString("premium_plan", "none") ?: "none"
+
+    fun isLocalPremiumActive(): Boolean {
+        val plan = getLocalPremiumPlan()
+        if (plan == "none")     return false
+        if (plan == "lifetime") return true
+        val expiresAt = prefs.getLong("premium_expires_at", 0L)
+        return expiresAt > System.currentTimeMillis()
+    }
+
+    fun clearLocalPremium() {
+        prefs.edit().remove("premium_plan").remove("premium_expires_at").apply()
+    }
     // ─── Onboarding ─────────────────────────────────────────────────
     fun isOnboardingDone(): Boolean = prefs.getBoolean("onboarding_done", false)
     fun markOnboardingDone() { prefs.edit().putBoolean("onboarding_done", true).apply() }

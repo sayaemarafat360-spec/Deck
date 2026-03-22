@@ -14,6 +14,12 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.*
+import androidx.compose.foundation.gestures.transformable
+import androidx.compose.foundation.gestures.rememberTransformableState
+import android.content.ContentValues
+import android.provider.MediaStore
+import android.os.Environment
+import android.graphics.Bitmap
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.*
 import androidx.compose.material.icons.Icons
@@ -27,6 +33,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.view.drawToBitmap
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
@@ -54,7 +61,18 @@ fun VideoPlayerScreen(
                 Text("Player loading...", color = Color.White.copy(0.7f))
             }
         }
-        BackHandler { onBack() }
+        // Pinch-to-zoom
+    val transformState = rememberTransformableState { zoomChange, offsetChange, _ ->
+        videoScale = (videoScale * zoomChange).coerceIn(1f, 4f)
+        if (videoScale > 1f) {
+            videoOffsetX += offsetChange.x
+            videoOffsetY += offsetChange.y
+        } else {
+            videoOffsetX = 0f; videoOffsetY = 0f
+        }
+    }
+
+    BackHandler { onBack() }
         return
     }
 
@@ -69,6 +87,12 @@ fun VideoPlayerScreen(
     var seekLabel       by remember { mutableStateOf("") }
     var showSeekLabel   by remember { mutableStateOf(false) }
     var isLocked        by remember { mutableStateOf(false) }
+    var videoScale      by remember { mutableStateOf(1f) }
+    var videoOffsetX    by remember { mutableStateOf(0f) }
+    var videoOffsetY    by remember { mutableStateOf(0f) }
+    var videoSpeed      by remember { mutableStateOf(1.0f) }
+    var showSpeed       by remember { mutableStateOf(false) }
+    var swipeDownY      by remember { mutableStateOf(0f) }
 
     val aspectLabels = listOf("16:9", "4:3", "Fit", "Zoom")
     val aspectModes  = listOf(
@@ -109,6 +133,17 @@ fun VideoPlayerScreen(
     }
 
     // Restore on exit
+    // Pinch-to-zoom
+    val transformState = rememberTransformableState { zoomChange, offsetChange, _ ->
+        videoScale = (videoScale * zoomChange).coerceIn(1f, 4f)
+        if (videoScale > 1f) {
+            videoOffsetX += offsetChange.x
+            videoOffsetY += offsetChange.y
+        } else {
+            videoOffsetX = 0f; videoOffsetY = 0f
+        }
+    }
+
     BackHandler {
         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -130,8 +165,17 @@ fun VideoPlayerScreen(
             },
             update = { pv ->
                 pv.resizeMode = aspectModes[aspectIdx]
+                pv.setPlaybackSpeed(videoSpeed)
             },
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .transformable(state = transformState)
+                .graphicsLayer(
+                    scaleX         = videoScale,
+                    scaleY         = videoScale,
+                    translationX   = videoOffsetX,
+                    translationY   = videoOffsetY,
+                )
         )
 
         // ── Gesture layer ──────────────────────────────────────────────
@@ -267,6 +311,33 @@ fun VideoPlayerScreen(
                         Icon(Icons.Filled.Lock, null, tint = Color.White)
                     }
 
+                    // Screenshot
+                    IconButton(onClick = {
+                        try {
+                            val view = playerViewRef ?: return@IconButton
+                            val bmp = view.drawToBitmap()
+                            val values = ContentValues().apply {
+                                put(MediaStore.Images.Media.DISPLAY_NAME, "deck_screenshot_${System.currentTimeMillis()}.jpg")
+                                put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+                                put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/Deck")
+                            }
+                            val uri = context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+                            uri?.let { u ->
+                                context.contentResolver.openOutputStream(u)?.use { out ->
+                                    bmp.compress(Bitmap.CompressFormat.JPEG, 95, out)
+                                }
+                            }
+                        } catch (_: Exception) {}
+                    }) {
+                        Icon(Icons.Filled.CameraAlt, null, tint = Color.White)
+                    }
+
+                    // Speed
+                    TextButton(onClick = { showSpeed = true }) {
+                        Text("${videoSpeed}×", color = Color.White,
+                            style = MaterialTheme.typography.labelMedium)
+                    }
+
                     // PiP
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         IconButton(onClick = {
@@ -397,6 +468,19 @@ fun VideoPlayerScreen(
                 }
             }
         }
+    }
+
+    // Speed picker for video
+    if (showSpeed) {
+        SpeedPickerSheet(
+            current   = videoSpeed,
+            onSelect  = { s ->
+                videoSpeed = s
+                player?.setPlaybackSpeed(s)
+                showSpeed = false
+            },
+            onDismiss = { showSpeed = false }
+        )
     }
 }
 

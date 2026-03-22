@@ -32,6 +32,7 @@ fun HomeScreen(
     onPremiumClick: () -> Unit,
     onStatsClick: () -> Unit,
     onEditTag: ((Song) -> Unit)? = null,
+    onMoreClick: ((Song) -> Unit)? = null,
     recentlyAdded: List<Song> = emptyList(),
 ) {
     val hour = remember { Calendar.getInstance().get(Calendar.HOUR_OF_DAY) }
@@ -187,7 +188,7 @@ fun HomeScreen(
                 }
             }
             items(songs.take(5)) { song ->
-                SongRow(song = song, onClick = { onSongClick(song) })
+                SongRow(song = song, onClick = { onSongClick(song) }, onMoreClick = { onMoreClick?.invoke(song) })
                 HorizontalDivider(Modifier.padding(start = 72.dp), color = DarkBorderSubtle, thickness = 0.5.dp)
             }
             if (songs.size > 5) {
@@ -304,7 +305,7 @@ private fun RecentCard(song: Song, onClick: () -> Unit) {
 }
 
 @Composable
-private fun SongRow(song: Song, onClick: () -> Unit) {
+private fun SongRow(song: Song, onClick: () -> Unit, onMoreClick: () -> Unit = {}) {
     val colors = listOf(NebulaViolet, NebulaPink, NebulaCyan, NebulaAmber, NebulaGreen)
     val color  = colors[(song.id % colors.size).toInt().let { if (it < 0) -it else it }]
     Row(
@@ -330,5 +331,9 @@ private fun SongRow(song: Song, onClick: () -> Unit) {
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Text(song.durationFormatted, style = MaterialTheme.typography.labelSmall, color = TextTertiaryDark)
+        Spacer(Modifier.width(4.dp))
+        IconButton(onClick = onMoreClick, modifier = Modifier.size(32.dp)) {
+            Icon(Icons.Filled.MoreVert, null, tint = TextTertiaryDark, modifier = Modifier.size(16.dp))
+        }
     }
 }

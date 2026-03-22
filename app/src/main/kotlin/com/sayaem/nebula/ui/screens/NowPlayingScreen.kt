@@ -37,6 +37,7 @@ fun NowPlayingScreen(
     onToggleShuffle: () -> Unit,
     onCycleRepeat: () -> Unit,
     onClose: () -> Unit,
+    audioSessionId: Int = 0,
     onEqualizerClick: () -> Unit,
     onSleepTimer: () -> Unit,
     onSpeedClick: () -> Unit,
@@ -82,8 +83,18 @@ fun NowPlayingScreen(
 
             Spacer(Modifier.height(32.dp))
 
-            // Vinyl disc
-            Box(Modifier.size(270.dp), contentAlignment = Alignment.Center) {
+            // Vinyl disc with real-time audio visualizer behind it
+            Box(Modifier.size(290.dp), contentAlignment = Alignment.Center) {
+                // Real-time FFT visualizer ring behind disc
+                if (audioSessionId != 0 && state.isPlaying) {
+                    AudioVisualizer(
+                        audioSessionId = audioSessionId,
+                        barCount       = 40,
+                        color1         = NebulaViolet,
+                        color2         = NebulaPink,
+                        modifier       = Modifier.fillMaxSize(),
+                    )
+                }
                 Box(Modifier.size(290.dp).clip(CircleShape)
                     .background(NebulaViolet.copy(alpha = if (state.isPlaying) 0.12f else 0.04f)))
                 Box(

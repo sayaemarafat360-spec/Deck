@@ -35,6 +35,7 @@ fun LibraryScreen(
     folders: Map<String, List<Song>>,
     onSongClick: (Song) -> Unit,
     onVideoClick: (Song) -> Unit,
+    onMoreClick: (Song) -> Unit = {},
     onPlayPlaylist: (Playlist) -> Unit,
     onCreatePlaylist: (String) -> Unit,
     onDeletePlaylist: (String) -> Unit,
@@ -70,7 +71,7 @@ fun LibraryScreen(
         HorizontalDivider(color = DarkBorder, thickness = 0.5.dp)
 
         when (selectedTab) {
-            0 -> SongsTab(songs, currentSong, isPlaying, onSongClick)
+            0 -> SongsTab(songs, currentSong, isPlaying, onSongClick, onMoreClick)
             1 -> VideosTab(videos, onVideoClick)
             2 -> AlbumsTab(songs, onSongClick)
             3 -> ArtistsTab(songs, onSongClick)
@@ -84,7 +85,7 @@ fun LibraryScreen(
 
 // ─── Songs ───────────────────────────────────────────────────────────
 @Composable
-private fun SongsTab(songs: List<Song>, current: Song?, isPlaying: Boolean, onSongClick: (Song) -> Unit) {
+private fun SongsTab(songs: List<Song>, current: Song?, isPlaying: Boolean, onSongClick: (Song) -> Unit, onMoreClick: (Song) -> Unit = {}) {
     var sortIdx by remember { mutableStateOf(0) }
     val sorts   = listOf("Recent", "A–Z", "Artist", "Duration")
     val sorted  = remember(songs, sortIdx) {
@@ -109,7 +110,8 @@ private fun SongsTab(songs: List<Song>, current: Song?, isPlaying: Boolean, onSo
                 items(sorted, key = { it.id }) { song ->
                     SongTile(song.title, song.artist, song.durationFormatted,
                         isPlaying = current?.id == song.id && isPlaying,
-                        onClick = { onSongClick(song) })
+                        onClick = { onSongClick(song) },
+                        onMoreClick = { onMoreClick(song) })
                     HorizontalDivider(Modifier.padding(start = 84.dp), color = DarkBorderSubtle, thickness = 0.5.dp)
                 }
             }
@@ -422,7 +424,8 @@ private fun FavoritesTab(songs: List<Song>, current: Song?, isPlaying: Boolean, 
                 SongTile(song.title, song.artist, song.durationFormatted,
                     accentColor = NebulaPink,
                     isPlaying = current?.id == song.id && isPlaying,
-                    onClick = { onSongClick(song) })
+                    onClick = { onSongClick(song) },
+                    onMoreClick = { onMoreClick(song) })
             }
         }
     }

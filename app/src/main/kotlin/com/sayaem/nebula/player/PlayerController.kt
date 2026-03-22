@@ -107,6 +107,25 @@ class PlayerController(private val context: Context) {
 
     fun getQueue(): List<Song> = currentQueue
 
+    // Play song immediately next in queue
+    fun playNext(song: Song) {
+        val p   = _service?.exoPlayer ?: return
+        val idx = p.currentMediaItemIndex + 1
+        currentQueue = currentQueue.toMutableList().also {
+            it.add(idx.coerceAtMost(it.size), song)
+        }
+        p.addMediaItem(idx, MediaItem.fromUri(song.uri))
+        syncState()
+    }
+
+    // Append song to end of queue
+    fun addToQueue(song: Song) {
+        val p = _service?.exoPlayer ?: return
+        currentQueue = currentQueue + song
+        p.addMediaItem(MediaItem.fromUri(song.uri))
+        syncState()
+    }
+
     private fun syncState() {
         val p = _service?.exoPlayer ?: return
         val idx  = p.currentMediaItemIndex.coerceAtLeast(0)
