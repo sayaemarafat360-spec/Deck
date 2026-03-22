@@ -84,6 +84,7 @@ fun OnboardingScreen(onDone: () -> Unit) {
         AnimatedContent(page.accentColor, transitionSpec = {
             fadeIn(tween(600)) togetherWith fadeOut(tween(400))
         }, label = "bgColor") { color ->
+            val appColors = LocalAppColors.current
             Canvas(Modifier.fillMaxSize()) {
                 drawCircle(color.copy(alpha = 0.06f + pulse * 0.03f),
                     radius = size.width * 0.7f,
@@ -204,6 +205,7 @@ fun PlayIllustration(pulse: Float, rotate: Float) {
     val bar5 by infiniteTransition.animateFloat(0.6f, 0.3f,
         infiniteRepeatable(tween(680), RepeatMode.Reverse), label = "b5")
 
+    val appColors = LocalAppColors.current
     Canvas(Modifier.fillMaxSize()) {
         val cx = size.width / 2
         val cy = size.height / 2
@@ -221,7 +223,7 @@ fun PlayIllustration(pulse: Float, rotate: Float) {
         // Color band
         drawCircle(NebulaViolet.copy(alpha = 0.3f), radius = 50f, style = Stroke(8f))
         // Center hole
-        drawCircle(LocalAppColors.current.bg, radius = 12f)
+        drawCircle(appColors.bg, radius = 12f)
         drawCircle(NebulaViolet.copy(alpha = 0.6f), radius = 12f, style = Stroke(2f))
 
         // Spinning needle arm

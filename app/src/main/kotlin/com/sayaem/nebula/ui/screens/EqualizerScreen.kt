@@ -199,6 +199,7 @@ private fun EqBand(
                     }
                 }
         ) {
+            val appColors = LocalAppColors.current
             Canvas(Modifier.fillMaxSize()) {
                 val trackW  = size.width * 0.35f
                 val trackX  = (size.width - trackW) / 2
@@ -206,7 +207,7 @@ private fun EqBand(
 
                 // Track background
                 drawRoundRect(
-                    color  = LocalAppColors.current.border,
+                    color  = appColors.border,
                     topLeft = Offset(trackX, 0f),
                     size   = Size(trackW, size.height),
                     cornerRadius = CornerRadius(trackW / 2)

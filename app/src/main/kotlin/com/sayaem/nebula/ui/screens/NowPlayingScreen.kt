@@ -467,6 +467,7 @@ fun WaveformSeekBar(
                     }
                 }
         ) {
+            val appColors = LocalAppColors.current
             Canvas(Modifier.fillMaxSize()) {
                 val barW    = size.width / bars.size
                 val centerY = size.height / 2f
@@ -479,7 +480,7 @@ fun WaveformSeekBar(
                     val played  = barFrac <= displayProgress
 
                     // Bar color: played = violet, unplayed = dark
-                    val color = if (played) NebulaViolet else LocalAppColors.current.border
+                    val color = if (played) NebulaViolet else appColors.border
 
                     drawRoundRect(
                         color       = color,
