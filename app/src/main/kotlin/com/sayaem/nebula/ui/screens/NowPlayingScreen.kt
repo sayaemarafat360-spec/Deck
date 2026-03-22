@@ -6,6 +6,13 @@ import androidx.compose.ui.geometry.*
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
+import android.graphics.drawable.BitmapDrawable
+import coil.request.SuccessResult
+import coil.ImageLoader
+import androidx.palette.graphics.Palette
+import androidx.compose.ui.platform.LocalContext
+import coil.request.ImageRequest
+import coil.compose.AsyncImage
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.gestures.*
 import androidx.compose.ui.input.pointer.*
@@ -45,6 +52,10 @@ fun NowPlayingScreen(
     isFavorite: Boolean = false,
     onToggleFavorite: (Song) -> Unit,
     onQueueSeekTo: ((Int) -> Unit)? = null,
+    onAddBookmark: (() -> Unit)? = null,
+    onBookmarks: (() -> List<com.sayaem.nebula.data.local.LocalDataStore.Bookmark>)? = null,
+    onSeekToBookmark: ((Long) -> Unit)? = null,
+    onDeleteBookmark: ((Long) -> Unit)? = null,
     onEditTag: ((Song) -> Unit)? = null,
 ) {
     val song = state.currentSong
@@ -61,7 +72,30 @@ fun NowPlayingScreen(
     )
 
     var isFav by remember(isFavorite) { mutableStateOf(isFavorite) }
-    var showQueue by remember { mutableStateOf(false) }
+    var showQueue  by remember { mutableStateOf(false) }
+    var showLyrics by remember { mutableStateOf(false) }
+
+    // Dynamic background color from album art
+    val context = LocalContext.current
+    var dominantColor by remember { mutableStateOf<androidx.compose.ui.graphics.Color?>(null) }
+    val currentSong = state.currentSong
+    LaunchedEffect(currentSong?.id) {
+        val artUri = currentSong?.albumArtUri ?: run { dominantColor = null; return@LaunchedEffect }
+        try {
+            val loader = ImageLoader(context)
+            val req    = ImageRequest.Builder(context).data(artUri).allowHardware(false).build()
+            val result = (loader.execute(req) as? SuccessResult)?.drawable
+            val bmp    = (result as? BitmapDrawable)?.bitmap
+            bmp?.let { b ->
+                Palette.from(b).generate { palette ->
+                    val swatch = palette?.dominantSwatch ?: palette?.vibrantSwatch
+                    swatch?.let { sw ->
+                        dominantColor = androidx.compose.ui.graphics.Color(sw.rgb).copy(alpha = 0.35f)
+                    }
+                }
+            }
+        } catch (_: Exception) { dominantColor = null }
+    }
 
     Box(modifier = Modifier.fillMaxSize()
         .background(Brush.verticalGradient(listOf(bgAnim, DarkBg)))) {
@@ -103,6 +137,16 @@ fun NowPlayingScreen(
                         .rotate(if (state.isPlaying) vinylRotation else 0f),
                     contentAlignment = Alignment.Center
                 ) {
+                    // Real album art in center of vinyl
+                    if (state.currentSong?.albumArtUri != null) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(state.currentSong!!.albumArtUri).crossfade(true).build(),
+                            contentDescription = null,
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                            modifier = Modifier.size(160.dp).clip(CircleShape)
+                        )
+                    }
                     for (r in listOf(0.95f, 0.8f, 0.65f, 0.5f)) {
                         Box(Modifier.size((270 * r).dp).clip(CircleShape)
                             .border(0.5.dp, Color.White.copy(alpha = 0.05f), CircleShape))
@@ -211,10 +255,23 @@ fun NowPlayingScreen(
                 ExtraBtn(Icons.Filled.Speed, "${currentSpeed}x", onClick = onSpeedClick)
                 ExtraBtn(Icons.Filled.Share, "Share",
                     onClick = { song?.let { onShare(it) } })
+                ExtraBtn(Icons.Filled.Lyrics, "Lyrics",    onClick = { showLyrics = true })
+                ExtraBtn(Icons.Filled.Bookmark, "Bookmark", onClick = { onAddBookmark?.invoke() })
                 ExtraBtn(Icons.Filled.Edit, "Edit Tags", onClick = { state.currentSong?.let { onEditTag?.invoke(it) } })
             }
         }
     }
+    // Lyrics sheet (real .lrc file reader)
+    if (showLyrics) {
+        state.currentSong?.let { song ->
+            LyricsSheet(
+                song       = song,
+                positionMs = state.position,
+                onDismiss  = { showLyrics = false }
+            )
+        }
+    }
+
     // Queue sheet overlay
     if (showQueue) {
         QueueSheet(

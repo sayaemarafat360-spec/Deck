@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.*
 import com.sayaem.nebula.data.models.Playlist
 import com.sayaem.nebula.data.models.Song
 import com.sayaem.nebula.ui.components.SongTile
+import com.sayaem.nebula.ui.components.SwipeableSongTile
 import com.sayaem.nebula.ui.theme.*
 
 
@@ -36,12 +37,15 @@ fun LibraryScreen(
     onSongClick: (Song) -> Unit,
     onVideoClick: (Song) -> Unit,
     onMoreClick: (Song) -> Unit = {},
+    onPlayNext: (Song) -> Unit = {},
+    onAddToQueue: (Song) -> Unit = {},
     onPlayPlaylist: (Playlist) -> Unit,
     onCreatePlaylist: (String) -> Unit,
     onDeletePlaylist: (String) -> Unit,
     onRenamePlaylist: (String, String) -> Unit,
     onAddSongToPlaylist: (String, Long) -> Unit,
     onRemoveSongFromPlaylist: (String, Long) -> Unit,
+    onReorderPlaylist: (String, List<Long>) -> Unit = { _, _ -> },
 ) {
     var selectedTab by remember { mutableStateOf(0) }
     val tabs = listOf("Songs", "Videos", "Albums", "Artists", "Playlists", "Favorites", "Folders")
@@ -71,12 +75,12 @@ fun LibraryScreen(
         HorizontalDivider(color = DarkBorder, thickness = 0.5.dp)
 
         when (selectedTab) {
-            0 -> SongsTab(songs, currentSong, isPlaying, onSongClick, onMoreClick)
+            0 -> SongsTab(songs, currentSong, isPlaying, onSongClick, onMoreClick, onPlayNext, onAddToQueue)
             1 -> VideosTab(videos, onVideoClick)
             2 -> AlbumsTab(songs, onSongClick)
             3 -> ArtistsTab(songs, onSongClick)
             4 -> PlaylistsTab(songs, playlists, onPlayPlaylist, onCreatePlaylist,
-                    onDeletePlaylist, onRenamePlaylist, onAddSongToPlaylist, onRemoveSongFromPlaylist)
+                    onDeletePlaylist, onRenamePlaylist, onAddSongToPlaylist, onRemoveSongFromPlaylist, onReorderPlaylist)
             5 -> FavoritesTab(favorites, currentSong, isPlaying, onSongClick)
             6 -> FoldersTab(folders, onSongClick)
         }
@@ -85,7 +89,7 @@ fun LibraryScreen(
 
 // ─── Songs ───────────────────────────────────────────────────────────
 @Composable
-private fun SongsTab(songs: List<Song>, current: Song?, isPlaying: Boolean, onSongClick: (Song) -> Unit, onMoreClick: (Song) -> Unit = {}) {
+private fun SongsTab(songs: List<Song>, current: Song?, isPlaying: Boolean, onSongClick: (Song) -> Unit, onMoreClick: (Song) -> Unit = {}, onPlayNext: (Song) -> Unit = {}, onAddToQueue: (Song) -> Unit = {}) {
     var sortIdx by remember { mutableStateOf(0) }
     val sorts   = listOf("Recent", "A–Z", "Artist", "Duration")
     val sorted  = remember(songs, sortIdx) {
@@ -108,10 +112,13 @@ private fun SongsTab(songs: List<Song>, current: Song?, isPlaying: Boolean, onSo
                 item { EmptyState("No songs found", "Grant storage permission to scan your music") }
             } else {
                 items(sorted, key = { it.id }) { song ->
-                    SongTile(song.title, song.artist, song.durationFormatted,
-                        isPlaying = current?.id == song.id && isPlaying,
-                        onClick = { onSongClick(song) },
-                        onMoreClick = { onMoreClick(song) })
+                    SwipeableSongTile(song.title, song.artist, song.durationFormatted,
+                        albumArtUri  = song.albumArtUri,
+                        isPlaying    = current?.id == song.id && isPlaying,
+                        onClick      = { onSongClick(song) },
+                        onMoreClick  = { onMoreClick(song) },
+                        onPlayNext   = { onPlayNext(song) },
+                        onAddToQueue = { onAddToQueue(song) })
                     HorizontalDivider(Modifier.padding(start = 84.dp), color = DarkBorderSubtle, thickness = 0.5.dp)
                 }
             }
@@ -173,7 +180,19 @@ private fun AlbumsTab(songs: List<Song>, onSongClick: (Song) -> Unit) {
                 Box(modifier = Modifier.fillMaxWidth().aspectRatio(1f)
                     .clip(RoundedCornerShape(topStart = 15.dp, topEnd = 15.dp))
                     .background(color.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Filled.Album, null, tint = color, modifier = Modifier.size(40.dp))
+                    val artUri = albumSongs.firstOrNull()?.albumArtUri
+                    if (artUri != null) {
+                        coil.compose.AsyncImage(
+                            model = coil.request.ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
+                                .data(artUri).crossfade(true).build(),
+                            contentDescription = null,
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                                .clip(RoundedCornerShape(topStart = 15.dp, topEnd = 15.dp))
+                        )
+                    } else {
+                        Icon(Icons.Filled.Album, null, tint = color, modifier = Modifier.size(40.dp))
+                    }
                 }
                 Column(Modifier.padding(12.dp)) {
                     Text(album, style = MaterialTheme.typography.titleSmall,
@@ -199,8 +218,19 @@ private fun ArtistsTab(songs: List<Song>, onSongClick: (Song) -> Unit) {
                 verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(52.dp).clip(CircleShape).background(color.copy(0.2f)),
                     contentAlignment = Alignment.Center) {
-                    Text(artist.take(1).uppercase(), style = MaterialTheme.typography.headlineSmall,
-                        color = color, fontWeight = FontWeight.Bold)
+                    val artUri = artistSongs.firstOrNull()?.albumArtUri
+                    if (artUri != null) {
+                        coil.compose.AsyncImage(
+                            model = coil.request.ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
+                                .data(artUri).crossfade(true).build(),
+                            contentDescription = null,
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        Text(artist.take(1).uppercase(), style = MaterialTheme.typography.headlineSmall,
+                            color = color, fontWeight = FontWeight.Bold)
+                    }
                 }
                 Spacer(Modifier.width(14.dp))
                 Column(Modifier.weight(1f)) {
@@ -226,6 +256,7 @@ private fun PlaylistsTab(
     onRename: (String, String) -> Unit,
     onAdd: (String, Long) -> Unit,
     onRemove: (String, Long) -> Unit,
+    onReorderPlaylist: (String, List<Long>) -> Unit = { _, _ -> },
 ) {
     var showCreateDialog  by remember { mutableStateOf(false) }
     var newPlaylistName   by remember { mutableStateOf("") }
@@ -308,16 +339,40 @@ private fun PlaylistsTab(
                                     style = MaterialTheme.typography.bodySmall, color = TextTertiaryDark)
                             }
                         } else {
-                            plSongs.forEach { song ->
-                                Row(modifier = Modifier.fillMaxWidth().padding(start = 84.dp, end = 20.dp, top = 6.dp, bottom = 6.dp),
+                            plSongs.forEachIndexed { idx, song ->
+                                Row(modifier = Modifier.fillMaxWidth()
+                                    .padding(start = 84.dp, end = 20.dp, top = 6.dp, bottom = 6.dp),
                                     verticalAlignment = Alignment.CenterVertically) {
+                                    // Drag handle
+                                    Icon(Icons.Filled.DragHandle, null, tint = TextTertiaryDark,
+                                        modifier = Modifier.size(18.dp).padding(end = 4.dp))
                                     Column(Modifier.weight(1f)) {
                                         Text(song.title, style = MaterialTheme.typography.bodyMedium,
                                             color = TextPrimaryDark, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                         Text(song.artist, style = MaterialTheme.typography.bodySmall, color = TextTertiaryDark)
                                     }
-                                    IconButton(onClick = { onRemove(pl.id, song.id) }, modifier = Modifier.size(32.dp)) {
-                                        Icon(Icons.Filled.RemoveCircleOutline, null, tint = TextTertiaryDark, modifier = Modifier.size(18.dp))
+                                    // Move up
+                                    if (idx > 0) {
+                                        IconButton(onClick = {
+                                            val ids = plSongs.map { it.id }.toMutableList()
+                                            ids.add(idx - 1, ids.removeAt(idx))
+                                            onReorderPlaylist(pl.id, ids)
+                                        }, modifier = Modifier.size(28.dp)) {
+                                            Icon(Icons.Filled.KeyboardArrowUp, null, tint = TextTertiaryDark, modifier = Modifier.size(16.dp))
+                                        }
+                                    }
+                                    // Move down
+                                    if (idx < plSongs.size - 1) {
+                                        IconButton(onClick = {
+                                            val ids = plSongs.map { it.id }.toMutableList()
+                                            ids.add(idx + 1, ids.removeAt(idx))
+                                            onReorderPlaylist(pl.id, ids)
+                                        }, modifier = Modifier.size(28.dp)) {
+                                            Icon(Icons.Filled.KeyboardArrowDown, null, tint = TextTertiaryDark, modifier = Modifier.size(16.dp))
+                                        }
+                                    }
+                                    IconButton(onClick = { onRemove(pl.id, song.id) }, modifier = Modifier.size(28.dp)) {
+                                        Icon(Icons.Filled.RemoveCircleOutline, null, tint = NebulaRed.copy(0.7f), modifier = Modifier.size(16.dp))
                                     }
                                 }
                             }
@@ -422,6 +477,7 @@ private fun FavoritesTab(songs: List<Song>, current: Song?, isPlaying: Boolean, 
         } else {
             items(songs, key = { it.id }) { song ->
                 SongTile(song.title, song.artist, song.durationFormatted,
+                    albumArtUri = song.albumArtUri,
                     accentColor = NebulaPink,
                     isPlaying = current?.id == song.id && isPlaying,
                     onClick = { onSongClick(song) },

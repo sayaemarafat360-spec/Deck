@@ -33,6 +33,7 @@ fun HomeScreen(
     onStatsClick: () -> Unit,
     onEditTag: ((Song) -> Unit)? = null,
     onMoreClick: ((Song) -> Unit)? = null,
+    isPremium: Boolean = false,
     recentlyAdded: List<Song> = emptyList(),
 ) {
     val hour = remember { Calendar.getInstance().get(Calendar.HOUR_OF_DAY) }
@@ -44,7 +45,7 @@ fun HomeScreen(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 160.dp)
+        contentPadding = PaddingValues(bottom = if (isPremium) 160.dp else 210.dp)
     ) {
 
         // ── Header ─────────────────────────────────────────────────────

@@ -36,6 +36,8 @@ fun EqualizerScreen(
     onPresetChanged: (String) -> Unit,
     onToggleEq: () -> Unit,
     onBack: () -> Unit,
+    onSaveForSong: (() -> Unit)? = null,
+    currentSongTitle: String? = null,
 ) {
     val presets = MainViewModel.EQ_PRESETS.keys.toList()
     val freqLabels = listOf("60", "170", "310", "600", "1K", "3K", "6K", "12K", "14K", "16K")
@@ -49,6 +51,13 @@ fun EqualizerScreen(
         ) {
             IconButton(onClick = onBack) {
                 Icon(Icons.Filled.ArrowBack, null, tint = TextPrimaryDark)
+            }
+            if (onSaveForSong != null && currentSongTitle != null) {
+                TextButton(onClick = onSaveForSong) {
+                    Icon(Icons.Filled.Save, null, tint = NebulaViolet, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Save for song", color = NebulaViolet, style = MaterialTheme.typography.labelSmall)
+                }
             }
             Text("Equalizer", style = MaterialTheme.typography.headlineMedium,
                 color = TextPrimaryDark, fontWeight = FontWeight.Bold,

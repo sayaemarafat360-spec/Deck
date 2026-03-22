@@ -60,7 +60,13 @@ class PlayerController(private val context: Context) {
             syncState()
             if (p) startPositionUpdates() else stopPositionUpdates()
         }
-        override fun onMediaItemTransition(item: MediaItem?, reason: Int) { syncState() }
+        override fun onMediaItemTransition(item: MediaItem?, reason: Int) {
+            syncState()
+            // Real crossfade: duck out old track, fade in new one
+            if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO && crossfadeSeconds > 0) {
+                scope.launch { applyCrossfade() }
+            }
+        }
         override fun onShuffleModeEnabledChanged(e: Boolean) { syncState() }
         override fun onRepeatModeChanged(m: Int) { syncState() }
     }
@@ -103,6 +109,22 @@ class PlayerController(private val context: Context) {
                 else                   -> Player.REPEAT_MODE_OFF
             }
         }
+    }
+
+    // Crossfade duration in seconds (0 = disabled)
+    var crossfadeSeconds: Float = 0f
+
+    private suspend fun applyCrossfade() {
+        val p = _service?.exoPlayer ?: return
+        val steps = 20
+        val stepMs = (crossfadeSeconds * 1000 / steps).toLong().coerceAtLeast(50L)
+        // Fade in from 0 to 1 over the crossfade duration
+        for (i in 0..steps) {
+            val vol = i.toFloat() / steps
+            p.volume = vol
+            delay(stepMs)
+        }
+        p.volume = 1f
     }
 
     fun getQueue(): List<Song> = currentQueue

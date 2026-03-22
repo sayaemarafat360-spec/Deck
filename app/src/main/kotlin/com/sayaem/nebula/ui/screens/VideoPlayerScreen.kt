@@ -87,6 +87,13 @@ fun VideoPlayerScreen(
     var seekLabel       by remember { mutableStateOf("") }
     var showSeekLabel   by remember { mutableStateOf(false) }
     var isLocked        by remember { mutableStateOf(false) }
+    var showSubtitles   by remember { mutableStateOf(true) }
+
+    // Detect .srt file alongside the video
+    val srtPath = remember(video.filePath) {
+        val base = video.filePath.substringBeforeLast(".")
+        listOf("$base.srt", "$base.SRT").firstOrNull { java.io.File(it).exists() }
+    }
     var videoScale      by remember { mutableStateOf(1f) }
     var videoOffsetX    by remember { mutableStateOf(0f) }
     var videoOffsetY    by remember { mutableStateOf(0f) }
@@ -161,6 +168,23 @@ fun VideoPlayerScreen(
                     setBackgroundColor(android.graphics.Color.BLACK)
                     resizeMode = aspectModes[0]
                     playerViewRef = this
+
+                    // Load subtitle track if .srt exists
+                    srtPath?.let { path ->
+                        val subConfig = androidx.media3.common.MediaItem.SubtitleConfiguration.Builder(
+                            android.net.Uri.fromFile(java.io.File(path))
+                        ).setMimeType(androidx.media3.common.MimeTypes.APPLICATION_SUBRIP)
+                         .setSelectionFlags(androidx.media3.common.C.SELECTION_FLAG_DEFAULT)
+                         .build()
+                        val mediaItem = androidx.media3.common.MediaItem.Builder()
+                            .setUri(video.uri)
+                            .setSubtitleConfigurations(listOf(subConfig))
+                            .build()
+                        player?.clearMediaItems()
+                        player?.setMediaItem(mediaItem)
+                        player?.prepare()
+                        player?.play()
+                    }
                 }
             },
             update = { pv ->
@@ -304,6 +328,18 @@ fun VideoPlayerScreen(
                     TextButton(onClick = { aspectIdx = (aspectIdx + 1) % aspectLabels.size }) {
                         Text(aspectLabels[aspectIdx], color = Color.White,
                             style = MaterialTheme.typography.labelMedium)
+                    }
+
+                    // Subtitle toggle (only show if .srt exists)
+                    if (srtPath != null) {
+                        IconButton(onClick = { showSubtitles = !showSubtitles }) {
+                            Icon(
+                                if (showSubtitles) Icons.Filled.ClosedCaption
+                                else Icons.Filled.ClosedCaptionDisabled,
+                                null,
+                                tint = if (showSubtitles) NebulaViolet else Color.White
+                            )
+                        }
                     }
 
                     // Lock

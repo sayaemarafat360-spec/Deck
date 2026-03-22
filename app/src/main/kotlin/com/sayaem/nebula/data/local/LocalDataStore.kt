@@ -220,6 +220,61 @@ class LocalDataStore(context: Context) {
     fun clearLocalPremium() {
         prefs.edit().remove("premium_plan").remove("premium_expires_at").apply()
     }
+
+    // ─── EQ profiles per song ─────────────────────────────────────────
+    fun saveEqProfile(songId: Long, bands: List<Float>, preset: String) {
+        val key = "eq_profile_$songId"
+        val v   = bands.joinToString(",") + "|$preset"
+        prefs.edit().putString(key, v).apply()
+    }
+
+    fun loadEqProfile(songId: Long): Pair<List<Float>, String>? {
+        val raw = prefs.getString("eq_profile_$songId", null) ?: return null
+        return try {
+            val parts = raw.split("|")
+            val bands = parts[0].split(",").map { it.toFloat() }
+            val preset = parts.getOrElse(1) { "Custom" }
+            Pair(bands, preset)
+        } catch (_: Exception) { null }
+    }
+
+    fun deleteEqProfile(songId: Long) = prefs.edit().remove("eq_profile_$songId").apply()
+
+
+    // ─── Audio bookmarks ──────────────────────────────────────────────
+    data class Bookmark(val songId: Long, val positionMs: Long, val label: String, val createdAt: Long)
+
+    fun saveBookmark(songId: Long, positionMs: Long, label: String) {
+        val key  = "bookmarks_$songId"
+        val list = getBookmarks(songId).toMutableList()
+        list.add(Bookmark(songId, positionMs, label, System.currentTimeMillis()))
+        val json = org.json.JSONArray().also { arr ->
+            list.forEach { b -> arr.put(org.json.JSONObject()
+                .put("pos", b.positionMs).put("label", b.label).put("at", b.createdAt)) }
+        }
+        prefs.edit().putString(key, json.toString()).apply()
+    }
+
+    fun getBookmarks(songId: Long): List<Bookmark> {
+        return try {
+            val raw = prefs.getString("bookmarks_$songId", "[]") ?: "[]"
+            val arr = org.json.JSONArray(raw)
+            (0 until arr.length()).map { i ->
+                val obj = arr.getJSONObject(i)
+                Bookmark(songId, obj.getLong("pos"), obj.getString("label"), obj.getLong("at"))
+            }
+        } catch (_: Exception) { emptyList() }
+    }
+
+    fun deleteBookmark(songId: Long, positionMs: Long) {
+        val list = getBookmarks(songId).filter { it.positionMs != positionMs }
+        val json = org.json.JSONArray().also { arr ->
+            list.forEach { b -> arr.put(org.json.JSONObject()
+                .put("pos", b.positionMs).put("label", b.label).put("at", b.createdAt)) }
+        }
+        prefs.edit().putString("bookmarks_$songId", json.toString()).apply()
+    }
+
     // ─── Onboarding ─────────────────────────────────────────────────
     fun isOnboardingDone(): Boolean = prefs.getBoolean("onboarding_done", false)
     fun markOnboardingDone() { prefs.edit().putBoolean("onboarding_done", true).apply() }

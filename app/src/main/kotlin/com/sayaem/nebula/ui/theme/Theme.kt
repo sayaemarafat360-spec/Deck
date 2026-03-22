@@ -67,6 +67,7 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun DeckTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    dynamicAccentColor: androidx.compose.ui.graphics.Color? = null,
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme

@@ -125,15 +125,23 @@ fun SearchScreen(
 @Composable
 fun SettingsScreen(
     isDark: Boolean,
+    currentUser: com.google.firebase.auth.FirebaseUser? = null,
+    isPremium: Boolean = false,
+    onSignIn: () -> Unit = {},
+    onSignOut: () -> Unit = {},
     onToggleTheme: () -> Unit,
+    onDynColorChanged: ((Boolean) -> Unit)? = null,
     onEqualizerClick: () -> Unit,
     onPremiumClick: () -> Unit,
     onStatsClick: () -> Unit,
     onSleepTimerClick: (() -> Unit)? = null,
     onRescan: (() -> Unit)? = null,
+    onDrivingMode: (() -> Unit)? = null,
     onGaplessChanged: ((Boolean) -> Unit)? = null,
     onSmartSkipChanged: ((Boolean) -> Unit)? = null,
     onCrossfadeChanged: ((Float) -> Unit)? = null,
+    onVolumeNormChanged: ((Boolean) -> Unit)? = null,
+    initialVolumeNorm: Boolean = false,
     initialGapless: Boolean = true,
     initialSmartSkip: Boolean = false,
     initialCrossfade: Float = 0f,
@@ -142,7 +150,8 @@ fun SettingsScreen(
     var gapless   by remember { mutableStateOf(initialGapless) }
     var smartSkip by remember { mutableStateOf(initialSmartSkip) }
     var dynColor  by remember { mutableStateOf(false) }
-    var crossfade by remember { mutableStateOf(initialCrossfade) }
+    var crossfade  by remember { mutableStateOf(initialCrossfade) }
+    var volNorm    by remember { mutableStateOf(initialVolumeNorm) }
 
     LazyColumn(contentPadding = PaddingValues(bottom = 160.dp), modifier = Modifier.fillMaxSize()) {
         item {
@@ -177,12 +186,63 @@ fun SettingsScreen(
         }
 
         // Appearance
+        // ── Account section ──────────────────────────────────────────────
+        item { SSection("Account") }
+        item {
+            if (currentUser != null && !currentUser.isAnonymous) {
+                Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(40.dp).clip(CircleShape).background(NebulaViolet.copy(0.2f)),
+                        contentAlignment = Alignment.Center) {
+                        Icon(Icons.Filled.Person, null, tint = NebulaViolet, modifier = Modifier.size(20.dp))
+                    }
+                    Spacer(Modifier.width(14.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(currentUser.displayName ?: "Signed in", style = MaterialTheme.typography.bodyMedium,
+                            color = TextPrimaryDark, fontWeight = FontWeight.SemiBold)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(currentUser.email ?: "", style = MaterialTheme.typography.bodySmall,
+                                color = TextTertiaryDark)
+                            if (isPremium) {
+                                Spacer(Modifier.width(6.dp))
+                                Box(Modifier.clip(RoundedCornerShape(8.dp)).background(NebulaViolet.copy(0.2f))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)) {
+                                    Text("PREMIUM", style = MaterialTheme.typography.labelSmall, color = NebulaViolet)
+                                }
+                            }
+                        }
+                    }
+                    TextButton(onClick = onSignOut) {
+                        Text("Sign out", color = NebulaRed, style = MaterialTheme.typography.labelMedium)
+                    }
+                }
+            } else {
+                Row(Modifier.fillMaxWidth().clickable(onClick = onSignIn)
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(NebulaViolet.copy(0.15f)),
+                        contentAlignment = Alignment.Center) {
+                        Icon(Icons.Filled.Login, null, tint = NebulaViolet, modifier = Modifier.size(18.dp))
+                    }
+                    Spacer(Modifier.width(14.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("Sign in with Google", style = MaterialTheme.typography.bodyMedium,
+                            color = TextPrimaryDark, fontWeight = FontWeight.SemiBold)
+                        Text("Sync premium, playlists & favorites across devices",
+                            style = MaterialTheme.typography.bodySmall, color = TextTertiaryDark)
+                    }
+                    Icon(Icons.Filled.ChevronRight, null, tint = TextTertiaryDark, modifier = Modifier.size(18.dp))
+                }
+            }
+        }
+        item { Spacer(Modifier.height(8.dp)) }
+
         item { SSection("Appearance") }
         item { STile("Dark Mode", Icons.Filled.DarkMode, NebulaViolet,
             trailing = { Switch(checked = isDark, onCheckedChange = { onToggleTheme() },
                 colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = NebulaViolet)) }) }
         item { STile("Dynamic Colors", Icons.Filled.AutoAwesome, NebulaAmber, "Tint UI from album art",
-            trailing = { Switch(checked = dynColor, onCheckedChange = { dynColor = it },
+            trailing = { Switch(checked = dynColor, onCheckedChange = { dynColor = it; onDynColorChanged?.invoke(it) },
                 colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = NebulaViolet)) }) }
         item { Spacer(Modifier.height(8.dp)) }
 
@@ -233,6 +293,10 @@ fun SettingsScreen(
 
         // Library
         item { SSection("Library") }
+        item { STile("Driving Mode", Icons.Filled.DirectionsCar, NebulaGreen,
+                "Large controls for safe listening while driving",
+                trailing = { Icon(Icons.Filled.ChevronRight, null, tint = TextTertiaryDark) },
+                onClick = { onDrivingMode?.invoke() }) }
         item { STile("Rescan Media", Icons.Filled.Refresh, NebulaGreen, "Find new files on device",
             trailing = { Icon(Icons.Filled.ChevronRight, null, tint = TextTertiaryDark) },
             onClick = { onRescan?.invoke() }) }

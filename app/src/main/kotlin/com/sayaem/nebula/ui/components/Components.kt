@@ -1,6 +1,13 @@
 package com.sayaem.nebula.ui.components
 
 import androidx.compose.ui.*
+import coil.compose.AsyncImage
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.animation.core.*
+import coil.request.ImageRequest
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.*
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -54,6 +61,7 @@ fun SongTile(
     title: String,
     artist: String,
     duration: String,
+    albumArtUri: android.net.Uri? = null,
     accentColor: Color = NebulaViolet,
     isPlaying: Boolean = false,
     onClick: () -> Unit,
@@ -66,7 +74,7 @@ fun SongTile(
             .padding(horizontal = 20.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Album art placeholder
+        // Real album art via Coil
         Box(
             modifier = Modifier
                 .size(50.dp)
@@ -74,10 +82,23 @@ fun SongTile(
                 .background(accentColor.copy(alpha = 0.15f)),
             contentAlignment = Alignment.Center
         ) {
+            if (albumArtUri != null) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(albumArtUri)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = null,
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
             if (isPlaying) {
-                // Animated equalizer bars
-                PlayingIndicator(color = accentColor)
-            } else {
+                Box(Modifier.fillMaxSize().background(accentColor.copy(alpha = 0.4f)),
+                    contentAlignment = Alignment.Center) {
+                    PlayingIndicator(color = Color.White)
+                }
+            } else if (albumArtUri == null) {
                 Icon(Icons.Filled.MusicNote, contentDescription = null,
                     tint = accentColor, modifier = Modifier.size(22.dp))
             }
@@ -147,14 +168,29 @@ fun MiniPlayer(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Album art
+                // Real album art
                 Box(
                     modifier = Modifier.size(46.dp).clip(RoundedCornerShape(10.dp))
                         .background(NebulaViolet.copy(alpha = 0.2f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (state.isPlaying) PlayingIndicator()
-                    else Icon(Icons.Filled.MusicNote, null, tint = NebulaViolet, modifier = Modifier.size(20.dp))
+                    if (song.albumArtUri != null) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(song.albumArtUri).crossfade(true).build(),
+                            contentDescription = null,
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(10.dp))
+                        )
+                    } else {
+                        Icon(Icons.Filled.MusicNote, null, tint = NebulaViolet, modifier = Modifier.size(20.dp))
+                    }
+                    if (state.isPlaying) {
+                        Box(Modifier.fillMaxSize().background(Color.Black.copy(0.35f))
+                            .clip(RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center) {
+                            PlayingIndicator()
+                        }
+                    }
                 }
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
@@ -264,4 +300,83 @@ fun StatCard(value: String, label: String, icon: @Composable () -> Unit, modifie
             color = TextPrimaryDark, fontWeight = FontWeight.Bold)
         Text(label, style = MaterialTheme.typography.bodySmall, color = TextTertiaryDark)
     }
+}
+
+// ── Swipeable Song Tile (swipe right = Play Next, left = Add to Queue) ─
+@Composable
+fun SwipeableSongTile(
+    title: String, artist: String, duration: String,
+    albumArtUri: android.net.Uri? = null,
+    accentColor: Color = NebulaViolet,
+    isPlaying: Boolean = false,
+    onClick: () -> Unit,
+    onMoreClick: () -> Unit = {},
+    onPlayNext: (() -> Unit)? = null,
+    onAddToQueue: (() -> Unit)? = null,
+) {
+    var offsetX by remember { mutableStateOf(0f) }
+    val animOffset by animateFloatAsState(offsetX, spring(stiffness = Spring.StiffnessMedium), label = "swipe")
+    val threshold = 120f
+    var triggered by remember { mutableStateOf(false) }
+
+    Box(Modifier.fillMaxWidth()) {
+        // Background action hints
+        if (animOffset > 20f && onPlayNext != null) {
+            Box(Modifier.matchParentSize().background(NebulaViolet.copy(0.15f)),
+                contentAlignment = Alignment.CenterStart) {
+                Row(Modifier.padding(start = 20.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.SkipNext, null, tint = NebulaViolet, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Play Next", style = MaterialTheme.typography.labelMedium, color = NebulaViolet)
+                }
+            }
+        }
+        if (animOffset < -20f && onAddToQueue != null) {
+            Box(Modifier.matchParentSize().background(NebulaCyan.copy(0.15f)),
+                contentAlignment = Alignment.CenterEnd) {
+                Row(Modifier.padding(end = 20.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Add to Queue", style = MaterialTheme.typography.labelMedium, color = NebulaCyan)
+                    Spacer(Modifier.width(6.dp))
+                    Icon(Icons.Filled.AddToQueue, null, tint = NebulaCyan, modifier = Modifier.size(20.dp))
+                }
+            }
+        }
+
+        Box(
+            Modifier.offset { androidx.compose.ui.unit.IntOffset(animOffset.toInt(), 0) }
+                .pointerInput(Unit) {
+                    detectHorizontalDragGestures(
+                        onDragEnd = {
+                            when {
+                                offsetX > threshold  -> { onPlayNext?.invoke(); triggered = true }
+                                offsetX < -threshold -> { onAddToQueue?.invoke(); triggered = true }
+                            }
+                            offsetX = 0f; triggered = false
+                        },
+                        onHorizontalDrag = { _, drag ->
+                            offsetX = (offsetX + drag).coerceIn(-threshold * 1.5f, threshold * 1.5f)
+                        }
+                    )
+                }
+        ) {
+            SongTile(title, artist, duration, albumArtUri, accentColor, isPlaying, onClick, onMoreClick)
+        }
+    }
+}
+
+// ── AdMob Banner (shown only for free users) ──────────────────────────
+@Composable
+fun AdMobBanner(modifier: Modifier = Modifier) {
+    AndroidView(
+        factory = { context ->
+            com.google.android.gms.ads.AdView(context).apply {
+                setAdSize(com.google.android.gms.ads.AdSize.BANNER)
+                // Test ID for development — replace with real ID from AdMob console
+                // Format: ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX
+                adUnitId = "ca-app-pub-3940256099942544/6300978111" // AdMob test banner ID
+                loadAd(com.google.android.gms.ads.AdRequest.Builder().build())
+            }
+        },
+        modifier = modifier.fillMaxWidth().height(50.dp)
+    )
 }

@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.work.*
 import com.sayaem.nebula.worker.ReEngagementWorker
 import com.sayaem.nebula.data.local.LocalDataStore
+import com.sayaem.nebula.backend.DeckBackend
 import com.sayaem.nebula.data.models.Playlist
 import com.sayaem.nebula.data.models.Song
 import com.sayaem.nebula.data.repository.MediaRepository
@@ -24,7 +25,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val repo    = MediaRepository(app)
     val player  = PlayerController(app)
     val store   = LocalDataStore(app)
-    val backend = com.sayaem.nebula.backend.BackendViewModel(app)
 
     val songs      = repo.songs.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
     val videos     = repo.videos.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -59,6 +59,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val eqState = _eqState.asStateFlow()
     private var equalizer: Equalizer? = null
     private var bassBoost: BassBoost? = null
+    private var loudnessEnhancer: android.media.audiofx.LoudnessEnhancer? = null
+    private val _volumeNormEnabled = MutableStateFlow(store.prefs.getBoolean("vol_norm", false))
+    val volumeNormEnabled = _volumeNormEnabled.asStateFlow()
     private var currentAudioSessionId = 0
 
     // Fix 4: Read settings from prefs on init
@@ -108,6 +111,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         scanMedia()
         scheduleNotifications()
         loadRecentlyAdded()
+        // Apply persisted settings to player
+        player.crossfadeSeconds = store.getCrossfade()
 
         // Fix 2: Wire audio session callback from service
         player.onAudioSessionReady = { sessionId ->
@@ -221,12 +226,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun toggleFavorite(song: Song) {
         store.toggleFavorite(song.id)
         _favorites.value = store.getFavorites()
-        // Push to cloud in background if signed in
-        backend.syncFavoritesUp(_favorites.value)
+        // Sync to cloud silently
+        viewModelScope.launch { DeckBackend.pushFavorites(_favorites.value) }
     }
     fun isFavorite(id: Long) = id in _favorites.value
 
     // ── Playlists ─────────────────────────────────────────────────────
+    fun refreshPlaylists()   { _playlists.value = store.getPlaylists() }
     fun createPlaylist(name: String)                        { store.createPlaylist(name); refresh() }
     fun deletePlaylist(id: String)                          { store.deletePlaylist(id); refresh() }
     fun renamePlaylist(id: String, name: String)            { store.renamePlaylist(id, name); refresh() }
@@ -235,8 +241,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun getPlaylistSongs(pl: Playlist): List<Song>          = songs.value.associateBy { it.id }.let { m -> pl.songIds.mapNotNull { m[it] } }
     private fun refresh() {
         _playlists.value = store.getPlaylists()
-        // Push to cloud in background if signed in
-        backend.syncPlaylistsUp(_playlists.value)
+        viewModelScope.launch { DeckBackend.pushPlaylists(_playlists.value) }
     }
 
     // ── Speed ─────────────────────────────────────────────────────────
@@ -322,6 +327,42 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _playlists.value = store.getPlaylists()
     }
 
+    fun setVolumeNorm(enabled: Boolean) {
+        _volumeNormEnabled.value = enabled
+        store.prefs.edit().putBoolean("vol_norm", enabled).apply()
+        try { loudnessEnhancer?.enabled = enabled } catch (_: Exception) {}
+    }
+
+    // Save current EQ state as profile for the currently playing song
+    // ── Bookmarks ─────────────────────────────────────────────────────
+    fun addBookmark(label: String = "") {
+        val song = playback.value.currentSong ?: return
+        val pos  = playback.value.position
+        val lbl  = label.ifBlank {
+            val m = pos / 60000; val s = (pos % 60000) / 1000
+            "%d:%02d".format(m, s)
+        }
+        store.saveBookmark(song.id, pos, lbl)
+    }
+
+    fun getBookmarks() = playback.value.currentSong?.let { store.getBookmarks(it.id) } ?: emptyList()
+
+    fun deleteBookmark(positionMs: Long) {
+        playback.value.currentSong?.let { store.deleteBookmark(it.id, positionMs) }
+    }
+
+    fun seekToBookmark(positionMs: Long) = player.seekTo(positionMs)
+
+    fun saveEqForCurrentSong() {
+        val song = playback.value.currentSong ?: return
+        store.saveEqProfile(song.id, _eqState.value.bands, _eqState.value.preset)
+    }
+
+    fun deleteEqForCurrentSong() {
+        val song = playback.value.currentSong ?: return
+        store.deleteEqProfile(song.id)
+    }
+
     fun setGapless(enabled: Boolean) {
         store.setGapless(enabled)
         // ExoPlayer handles gapless natively when tracks share the same format
@@ -335,8 +376,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setCrossfade(seconds: Float) {
         store.setCrossfade(seconds)
-        // Crossfade is applied at track transition via volume ramping
-        // Registered in player listener — nothing to do here at set time
+        player.crossfadeSeconds = seconds  // Live update — next transition uses this value
     }
 
     // ── Fix 6: Schedule re-engagement notifications via WorkManager ───
@@ -360,6 +400,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     override fun onCleared() {
         super.onCleared()
         try { equalizer?.release() } catch (_: Exception) {}
+        try { loudnessEnhancer?.release() } catch (_: Exception) {}
         try { bassBoost?.release() } catch (_: Exception) {}
         sleepTimerJob?.cancel()
         player.release()

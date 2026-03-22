@@ -28,11 +28,17 @@ import com.sayaem.nebula.data.models.Song
 import com.sayaem.nebula.ui.Screen
 import com.sayaem.nebula.ui.components.MiniPlayer
 import com.sayaem.nebula.ui.screens.*
+import com.sayaem.nebula.backend.BackendViewModel
 import com.sayaem.nebula.ui.theme.*
 
 class MainActivity : ComponentActivity() {
 
     private val vm: MainViewModel by viewModels()
+    private val backendVm: BackendViewModel by viewModels()
+
+    private val googleSignInLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result -> backendVm.handleGoogleSignInResult(result) }
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -77,13 +83,15 @@ fun DeckRoot(vm: MainViewModel) {
     val listeningStats    by vm.listeningStats.collectAsStateWithLifecycle()
     val recentlyAdded     by vm.recentlyAdded.collectAsStateWithLifecycle()
     val audioSessionId    by vm.audioSessionId.collectAsStateWithLifecycle()
+    var dynamicAccentColor by remember { mutableStateOf<androidx.compose.ui.graphics.Color?>(null) }
+    val useDynamicColor    by vm.store.let { remember { mutableStateOf(it.prefs.getBoolean("dynamic_color", false)) } }
 
     // Backend state
-    val backendUser    by vm.backend.user.collectAsStateWithLifecycle()
-    val isPremium      by vm.backend.isPremium.collectAsStateWithLifecycle()
-    val prices         by vm.backend.prices.collectAsStateWithLifecycle()
-    val backendMsg     by vm.backend.message.collectAsStateWithLifecycle()
-    val isSyncing      by vm.backend.isSyncing.collectAsStateWithLifecycle()
+    val backendUser    by backendVm.user.collectAsStateWithLifecycle()
+    val isPremium      by backendVm.isPremium.collectAsStateWithLifecycle()
+    val prices         by backendVm.prices.collectAsStateWithLifecycle()
+    val backendMsg     by backendVm.message.collectAsStateWithLifecycle()
+    val isSyncing      by backendVm.isSyncing.collectAsStateWithLifecycle()
     val eqState      by vm.eqState.collectAsStateWithLifecycle()
     val sleepTimer   by vm.sleepTimer.collectAsStateWithLifecycle()
     val speed        by vm.playbackSpeed.collectAsStateWithLifecycle()
@@ -100,7 +108,7 @@ fun DeckRoot(vm: MainViewModel) {
     // Pull cloud data once on startup if signed in
     LaunchedEffect(backendUser) {
         if (backendUser != null) {
-            vm.backend.pullAndMerge(
+            backendVm.pullAndMerge(
                 onFavorites = { cloudFavs ->
                     // Merge: cloud wins on sign-in, local is already in store
                     cloudFavs.forEach { id -> vm.store.prefs.edit()
@@ -117,10 +125,14 @@ fun DeckRoot(vm: MainViewModel) {
         }
     }
     var editingTagSong  by remember { mutableStateOf<com.sayaem.nebula.data.models.Song?>(null) }
+    var drivingMode     by remember { mutableStateOf(false) }
     var optionsSong     by remember { mutableStateOf<com.sayaem.nebula.data.models.Song?>(null) }
 
     // ── Back button — using BackHandler composable (more reliable) ────
     // Order matters: innermost overlay handled first
+    if (drivingMode) {
+        BackHandler { drivingMode = false }
+    }
     if (showSpeed) {
         BackHandler { showSpeed = false }
     }
@@ -144,7 +156,7 @@ fun DeckRoot(vm: MainViewModel) {
     LaunchedEffect(backendMsg) {
         backendMsg?.let {
             android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_LONG).show()
-            vm.backend.clearMessage()
+            backendVm.clearMessage()
         }
     }
 
@@ -192,6 +204,7 @@ fun DeckRoot(vm: MainViewModel) {
                             onSongClick  = { vm.playSong(it); showNowPlaying = true },
                             onEditTag    = { editingTagSong = it },
                             onMoreClick  = { optionsSong = it },
+                            isPremium    = isPremium,
                             recentlyAdded = recentlyAdded,
                             onVideoClick = { song ->
                                 videoSong = song
@@ -204,7 +217,10 @@ fun DeckRoot(vm: MainViewModel) {
                             songs    = songs, videos = videos,
                             currentSong = playback.currentSong,
                             isPlaying   = playback.isPlaying,
-                            onMoreClick = { optionsSong = it },
+                            onMoreClick  = { optionsSong = it },
+                            isPremium    = isPremium,
+                            onPlayNext   = { vm.playNext(it) },
+                            onAddToQueue = { vm.addToQueue(it) },
                             favorites   = favorites,
                             playlists   = playlists,
                             folders     = folders,
@@ -219,6 +235,7 @@ fun DeckRoot(vm: MainViewModel) {
                             onRenamePlaylist        = { id, name -> vm.renamePlaylist(id, name) },
                             onAddSongToPlaylist     = { pid, sid -> vm.addSongToPlaylist(pid, sid) },
                             onRemoveSongFromPlaylist = { pid, sid -> vm.removeSongFromPlaylist(pid, sid) },
+                            onReorderPlaylist        = { pid, ids -> vm.store.reorderPlaylist(pid, ids); vm.refreshPlaylists() },
                         )
                         Screen.Search -> SearchScreen(
                             query = query, onQueryChange = vm::setQuery,
@@ -227,6 +244,10 @@ fun DeckRoot(vm: MainViewModel) {
                             onSongClick = { vm.playSong(it); showNowPlaying = true }
                         )
                         Screen.Settings -> SettingsScreen(
+                            currentUser       = backendUser,
+                            isPremium         = isPremium,
+                            onSignIn          = { googleSignInLauncher.launch(backendVm.getGoogleSignInIntent()) },
+                            onSignOut         = { backendVm.signOut() },
                             isDark            = isDark,
                             onToggleTheme     = vm::toggleTheme,
                             onEqualizerClick  = { showEqualizer = true },
@@ -235,15 +256,16 @@ fun DeckRoot(vm: MainViewModel) {
                             onSleepTimerClick = { showSleepTimer = true },
                             onRescan          = { vm.scanMedia() },
                             onGaplessChanged   = { vm.setGapless(it) },
-                            onSmartSkipChanged = { vm.setSmartSkipEnabled(it) },
+                            onSmartSkipChanged  = { vm.setSmartSkipEnabled(it) },
+                            onVolumeNormChanged = { vm.setVolumeNorm(it) },
                             onCrossfadeChanged = { vm.setCrossfade(it) },
                         )
                         Screen.Premium -> PremiumScreen(
                             onBack       = { currentTab = Screen.Home },
                             isPremium    = isPremium,
-                            premiumPlan  = vm.backend.premiumPlan.collectAsStateWithLifecycle().value,
+                            premiumPlan  = backendVm.premiumPlan.collectAsStateWithLifecycle().value,
                             prices       = prices,
-                            onPurchase   = { plan -> vm.backend.grantPremium(plan) },
+                            onPurchase   = { plan -> backendVm.grantPremium(plan) },
                         )
                         Screen.Stats   -> StatsScreen(
                             songs = songs, stats = listeningStats,
@@ -280,7 +302,10 @@ fun DeckRoot(vm: MainViewModel) {
                     onShare          = { vm.shareSong(it) },
                     onToggleFavorite  = { vm.toggleFavorite(it) },
                     onEditTag         = { editingTagSong = it },
-                    onQueueSeekTo     = { vm.player.seekToIndex(it) },
+                    onQueueSeekTo        = { vm.player.seekToIndex(it) },
+                    onAddBookmark        = { vm.addBookmark() },
+                    onSeekToBookmark     = { vm.seekToBookmark(it) },
+                    onDeleteBookmark     = { vm.deleteBookmark(it) },
                     audioSessionId    = audioSessionId,
                 )
             }
@@ -294,7 +319,9 @@ fun DeckRoot(vm: MainViewModel) {
                         onBandChanged   = { band, value -> vm.setEqBand(band, value) },
                         onPresetChanged = { vm.applyEqPreset(it) },
                         onToggleEq      = { vm.toggleEq() },
-                        onBack          = { showEqualizer = false }
+                        onBack              = { showEqualizer = false },
+                    onSaveForSong       = { vm.saveEqForCurrentSong() },
+                    currentSongTitle    = playback.currentSong?.title,
                     )
                 }
             }
@@ -335,6 +362,17 @@ fun DeckRoot(vm: MainViewModel) {
                     onEditTags             = { editingTagSong = song; optionsSong = null },
                     onShare                = { vm.shareSong(song) },
                     onDelete               = { vm.deleteSong(song) {} },
+                )
+            }
+
+            // ── Driving Mode ─────────────────────────────────────────
+            if (drivingMode) {
+                DrivingModeScreen(
+                    state         = playback,
+                    onTogglePlay  = { vm.player.togglePlay() },
+                    onNext        = { vm.player.next() },
+                    onPrev        = { vm.player.previous() },
+                    onExit        = { drivingMode = false },
                 )
             }
 
