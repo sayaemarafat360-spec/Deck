@@ -13,13 +13,17 @@ workflows:
         - $HOME/.gradle/wrapper
 
     scripts:
-      - name: Get Gradle wrapper jar
+      - name: Get Gradle wrapper jar and print SHA-1
         script: |
           mkdir -p gradle/wrapper
           curl -fL \
             "https://github.com/gradle/gradle/raw/v8.4.0/gradle/wrapper/gradle-wrapper.jar" \
             -o gradle/wrapper/gradle-wrapper.jar
           chmod +x gradlew
+          echo "=== DEBUG KEYSTORE SHA-1 (add this to Firebase Console) ==="
+          keytool -list -v -keystore ~/.android/debug.keystore \
+            -alias androiddebugkey -storepass android -keypass android 2>/dev/null \
+            | grep -E "SHA1|SHA256" || echo "Keystore not found yet — will appear after first build"
 
       - name: Build debug APK
         script: ./gradlew :app:assembleDebug --no-daemon
@@ -41,13 +45,17 @@ workflows:
         - $HOME/.gradle/wrapper
 
     scripts:
-      - name: Get Gradle wrapper jar
+      - name: Get Gradle wrapper jar and print SHA-1
         script: |
           mkdir -p gradle/wrapper
           curl -fL \
             "https://github.com/gradle/gradle/raw/v8.4.0/gradle/wrapper/gradle-wrapper.jar" \
             -o gradle/wrapper/gradle-wrapper.jar
           chmod +x gradlew
+          echo "=== DEBUG KEYSTORE SHA-1 (add this to Firebase Console) ==="
+          keytool -list -v -keystore ~/.android/debug.keystore \
+            -alias androiddebugkey -storepass android -keypass android 2>/dev/null \
+            | grep -E "SHA1|SHA256" || echo "Keystore not found yet — will appear after first build"
 
       - name: Build release APK
         script: ./gradlew :app:assembleRelease --no-daemon

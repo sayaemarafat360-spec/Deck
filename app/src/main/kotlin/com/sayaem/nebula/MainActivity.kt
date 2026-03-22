@@ -97,7 +97,15 @@ fun DeckRoot(vm: MainViewModel, backendVm: BackendViewModel, onGoogleSignIn: () 
     val speed        by vm.playbackSpeed.collectAsStateWithLifecycle()
 
     // ── Navigation state ──────────────────────────────────────────────
-    var currentTab     by remember { mutableStateOf<Screen>(Screen.Home) }
+    // Real back stack — stores navigation history
+    val tabBackStack = remember { mutableStateListOf<Screen>(Screen.Home) }
+    val currentTab get() = tabBackStack.last()
+    fun navigateTo(screen: Screen) {
+        if (tabBackStack.last() != screen) tabBackStack.add(screen)
+    }
+    fun navigateBack(): Boolean {
+        return if (tabBackStack.size > 1) { tabBackStack.removeLast(); true } else false
+    }
     var showNowPlaying by remember { mutableStateOf(false) }
     var showEqualizer  by remember { mutableStateOf(false) }
     var showSleepTimer by remember { mutableStateOf(false) }
@@ -154,9 +162,9 @@ fun DeckRoot(vm: MainViewModel, backendVm: BackendViewModel, onGoogleSignIn: () 
                 // Restore music playback if it was interrupted by video
             }
             // Base handler: prevents accidental exit — minimizes instead
-            // Swallow back on home tab to prevent exit
-            // Don't navigate tabs on back - let user navigate explicitly
-            BackHandler(enabled = currentTab == Screen.Home) { /* prevent exit */ }
+            // Back nav: non-Home tab → go to Home. Home tab → swallow (prevent exit)
+            BackHandler(enabled = currentTab != Screen.Home) { navigateTo(Screen.Home) }
+            BackHandler(enabled = currentTab == Screen.Home) { /* swallow — prevent exit */ }
 
             // ── Onboarding ────────────────────────────────────────────
             if (showOnboarding) {
@@ -185,7 +193,7 @@ fun DeckRoot(vm: MainViewModel, backendVm: BackendViewModel, onGoogleSignIn: () 
                             )
                         }
                         if (videoSong == null) {
-                            DeckBottomNav(currentTab) { currentTab = it }
+                            DeckBottomNav(currentTab) { screen -> if (currentTab != screen) navigateTo(screen) }
                         }
                     }
                 }
@@ -206,8 +214,8 @@ fun DeckRoot(vm: MainViewModel, backendVm: BackendViewModel, onGoogleSignIn: () 
                                 videoSong = song
                                 vm.player.playQueue(listOf(song), 0)
                             },
-                            onPremiumClick = { currentTab = Screen.Premium },
-                            onStatsClick   = { currentTab = Screen.Stats },
+                            onPremiumClick = { navigateTo(Screen.Premium) },
+                            onStatsClick   = { navigateTo(Screen.Stats) },
                         )
                         Screen.Library -> LibraryScreen(
                             songs    = songs, videos = videos,
@@ -247,8 +255,8 @@ fun DeckRoot(vm: MainViewModel, backendVm: BackendViewModel, onGoogleSignIn: () 
                             isDark              = isDark,
                             onToggleTheme       = vm::toggleTheme,
                             onEqualizerClick    = { showEqualizer = true },
-                            onPremiumClick      = { currentTab = Screen.Premium },
-                            onStatsClick        = { currentTab = Screen.Stats },
+                            onPremiumClick      = { navigateTo(Screen.Premium) },
+                            onStatsClick        = { navigateTo(Screen.Stats) },
                             onSleepTimerClick   = { showSleepTimer = true },
                             onRescan            = { vm.scanMedia() },
                             onDrivingMode       = { drivingMode = true },
@@ -263,7 +271,7 @@ fun DeckRoot(vm: MainViewModel, backendVm: BackendViewModel, onGoogleSignIn: () 
                             onDynColorChanged   = { vm.store.prefs.edit().putBoolean("dynamic_color", it).apply() },
                         )
                         Screen.Premium -> PremiumScreen(
-                            onBack       = { currentTab = Screen.Home },
+                            onBack       = { navigateTo(Screen.Home) },
                             isPremium    = isPremium,
                             premiumPlan  = backendVm.premiumPlan.collectAsStateWithLifecycle().value,
                             prices       = prices,
@@ -272,7 +280,7 @@ fun DeckRoot(vm: MainViewModel, backendVm: BackendViewModel, onGoogleSignIn: () 
                         Screen.Stats   -> StatsScreen(
                             songs = songs, stats = listeningStats,
                             topSongs = topSongs, totalMinutes = totalMin,
-                            onBack = { currentTab = Screen.Home }
+                            onBack = { navigateTo(Screen.Home) }
                         )
                         else -> HomeScreen(
                             songs = songs, videos = videos, recentSongs = recentSongs,

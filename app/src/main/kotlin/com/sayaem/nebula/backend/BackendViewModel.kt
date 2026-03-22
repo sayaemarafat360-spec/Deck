@@ -90,18 +90,20 @@ class BackendViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun handleGoogleSignInResult(result: ActivityResult) {
-        // User cancelled — don't crash
         if (result.resultCode != android.app.Activity.RESULT_OK) {
-            _message.value = if (result.resultCode == 0) "Sign-in cancelled" else null
+            // RESULT_CANCELED usually means SHA-1 fingerprint mismatch in Firebase
+            // or user cancelled. Either way, don't crash.
+            _message.value = null
             return
         }
         viewModelScope.launch {
+            _isSyncing.value = true
             try {
-                _isSyncing.value = true
                 val account = GoogleSignIn.getSignedInAccountFromIntent(result.data)
                     .getResult(ApiException::class.java)
                 val idToken = account.idToken ?: run {
-                    _message.value = "Sign-in failed — try again"
+                    _message.value = "Sign-in failed — no ID token"
+                    _isSyncing.value = false
                     return@launch
                 }
                 val res = DeckBackend.signInWithGoogle(idToken)
@@ -110,10 +112,16 @@ class BackendViewModel(app: Application) : AndroidViewModel(app) {
                     pullCloudData()
                     _message.value = "Signed in as ${res.getOrNull()?.displayName}"
                 } else {
-                    _message.value = "Sign-in failed: ${res.exceptionOrNull()?.message}"
+                    _message.value = "Sign-in failed — check Firebase SHA-1"
                 }
             } catch (e: ApiException) {
-                _message.value = "Google Sign-In error: ${e.statusCode}"
+                // statusCode 10 = developer error (SHA-1 mismatch)
+                // statusCode 12501 = user cancelled
+                if (e.statusCode != 12501) {
+                    _message.value = null // silent fail, don't confuse user
+                }
+            } catch (e: Exception) {
+                _message.value = null
             } finally {
                 _isSyncing.value = false
             }

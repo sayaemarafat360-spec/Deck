@@ -158,6 +158,27 @@ fun VideoPlayerScreen(
 
     Box(Modifier.fillMaxSize().background(Color.Black)) {
 
+        // Load video URI after composition via LaunchedEffect
+        LaunchedEffect(video.uri) {
+            val mediaItem = if (srtPath != null) {
+                val subConfig = androidx.media3.common.MediaItem.SubtitleConfiguration.Builder(
+                    android.net.Uri.fromFile(java.io.File(srtPath))
+                ).setMimeType(androidx.media3.common.MimeTypes.APPLICATION_SUBRIP)
+                 .setSelectionFlags(androidx.media3.common.C.SELECTION_FLAG_DEFAULT)
+                 .build()
+                androidx.media3.common.MediaItem.Builder()
+                    .setUri(video.uri)
+                    .setSubtitleConfigurations(listOf(subConfig))
+                    .build()
+            } else {
+                androidx.media3.common.MediaItem.fromUri(video.uri)
+            }
+            videoPlayer.clearMediaItems()
+            videoPlayer.setMediaItem(mediaItem)
+            videoPlayer.prepare()
+            videoPlayer.play()
+        }
+
         // ── Video surface ──────────────────────────────────────────────
         AndroidView(
             factory = { ctx ->
@@ -167,25 +188,6 @@ fun VideoPlayerScreen(
                     setBackgroundColor(android.graphics.Color.BLACK)
                     resizeMode = aspectModes[0]
                     playerViewRef = this
-
-                    // Always load the video URI
-                    val mediaItem = if (srtPath != null) {
-                        val subConfig = androidx.media3.common.MediaItem.SubtitleConfiguration.Builder(
-                            android.net.Uri.fromFile(java.io.File(srtPath))
-                        ).setMimeType(androidx.media3.common.MimeTypes.APPLICATION_SUBRIP)
-                         .setSelectionFlags(androidx.media3.common.C.SELECTION_FLAG_DEFAULT)
-                         .build()
-                        androidx.media3.common.MediaItem.Builder()
-                            .setUri(video.uri)
-                            .setSubtitleConfigurations(listOf(subConfig))
-                            .build()
-                    } else {
-                        androidx.media3.common.MediaItem.fromUri(video.uri)
-                    }
-                    videoPlayer.clearMediaItems()
-                    videoPlayer.setMediaItem(mediaItem)
-                    videoPlayer.prepare()
-                    videoPlayer.play()
                 }
             },
             update = { pv ->
