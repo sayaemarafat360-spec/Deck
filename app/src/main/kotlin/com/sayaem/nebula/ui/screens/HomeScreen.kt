@@ -305,16 +305,14 @@ private fun RecentCard(song: Song, onClick: () -> Unit) {
     }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun SongRow(song: Song, onClick: () -> Unit, onMoreClick: () -> Unit = {}) {
     val colors = listOf(NebulaViolet, NebulaPink, NebulaCyan, NebulaAmber, NebulaGreen)
     val color  = colors[(song.id % colors.size).toInt().let { if (it < 0) -it else it }]
     Row(
         Modifier.fillMaxWidth()
-            .combinedClickable(
-                onClick  = onClick,
-                onLongClick = { onEditTag?.invoke(song) }
-            )
+            .clickable(onClick = onClick)
             .padding(horizontal = 20.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

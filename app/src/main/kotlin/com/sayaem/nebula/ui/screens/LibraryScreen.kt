@@ -81,7 +81,7 @@ fun LibraryScreen(
             3 -> ArtistsTab(songs, onSongClick)
             4 -> PlaylistsTab(songs, playlists, onPlayPlaylist, onCreatePlaylist,
                     onDeletePlaylist, onRenamePlaylist, onAddSongToPlaylist, onRemoveSongFromPlaylist, onReorderPlaylist)
-            5 -> FavoritesTab(favorites, currentSong, isPlaying, onSongClick)
+            5 -> FavoritesTab(favorites, currentSong, isPlaying, onSongClick, onMoreClick)
             6 -> FoldersTab(folders, onSongClick)
         }
     }
@@ -470,7 +470,7 @@ private fun PlaylistsTab(
 
 // ─── Favorites ───────────────────────────────────────────────────────
 @Composable
-private fun FavoritesTab(songs: List<Song>, current: Song?, isPlaying: Boolean, onSongClick: (Song) -> Unit) {
+private fun FavoritesTab(songs: List<Song>, current: Song?, isPlaying: Boolean, onSongClick: (Song) -> Unit, onMoreClick: (Song) -> Unit = {}) {
     LazyColumn(contentPadding = PaddingValues(bottom = 160.dp)) {
         if (songs.isEmpty()) {
             item { EmptyState("No favorites yet", "Tap the heart on any song to save it here") }

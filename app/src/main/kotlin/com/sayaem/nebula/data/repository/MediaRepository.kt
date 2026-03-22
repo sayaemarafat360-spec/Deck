@@ -140,7 +140,6 @@ class MediaRepository(private val context: Context) {
             it.album.lowercase().contains(q)
         }
     }
-}
 
     // ── Tag Editor: update title/artist/album via MediaStore ──────────
     suspend fun updateTags(
@@ -214,3 +213,4 @@ class MediaRepository(private val context: Context) {
             } catch (e: Exception) { e.printStackTrace() }
             results
         }
+}

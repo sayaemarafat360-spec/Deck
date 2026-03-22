@@ -49,7 +49,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
         requestPermissions()
-        setContent { DeckRoot(vm) }
+        setContent { DeckRoot(vm, backendVm, onGoogleSignIn = { googleSignInLauncher.launch(backendVm.getGoogleSignInIntent()) }) }
     }
 
     private fun requestPermissions() {
@@ -67,7 +67,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun DeckRoot(vm: MainViewModel) {
+fun DeckRoot(vm: MainViewModel, backendVm: BackendViewModel, onGoogleSignIn: () -> Unit = {}) {
     val isDark       by vm.isDark.collectAsStateWithLifecycle()
     val songs        by vm.songs.collectAsStateWithLifecycle()
     val videos       by vm.videos.collectAsStateWithLifecycle()
@@ -109,13 +109,11 @@ fun DeckRoot(vm: MainViewModel) {
     LaunchedEffect(backendUser) {
         if (backendUser != null) {
             backendVm.pullAndMerge(
-                onFavorites = { cloudFavs ->
-                    // Merge: cloud wins on sign-in, local is already in store
-                    cloudFavs.forEach { id -> vm.store.prefs.edit()
-                        .putStringSet("fav_synced", cloudFavs.map { it.toString() }.toSet()).apply() }
+                onFavorites = { cloudFavs: Set<Long> ->
+                    vm.store.prefs.edit()
+                        .putStringSet("fav_synced", cloudFavs.map { id -> id.toString() }.toSet()).apply()
                 },
-                onPlaylists = { cloudPlaylists ->
-                    // Only import if cloud has more playlists (simple merge strategy)
+                onPlaylists = { cloudPlaylists: List<com.sayaem.nebula.data.models.Playlist> ->
                     if (cloudPlaylists.size > vm.store.getPlaylists().size) {
                         vm.store.savePlaylists(cloudPlaylists)
                         vm.playlists  // trigger recompose via ViewModel
@@ -218,7 +216,6 @@ fun DeckRoot(vm: MainViewModel) {
                             currentSong = playback.currentSong,
                             isPlaying   = playback.isPlaying,
                             onMoreClick  = { optionsSong = it },
-                            isPremium    = isPremium,
                             onPlayNext   = { vm.playNext(it) },
                             onAddToQueue = { vm.addToQueue(it) },
                             favorites   = favorites,
@@ -246,7 +243,7 @@ fun DeckRoot(vm: MainViewModel) {
                         Screen.Settings -> SettingsScreen(
                             currentUser       = backendUser,
                             isPremium         = isPremium,
-                            onSignIn          = { googleSignInLauncher.launch(backendVm.getGoogleSignInIntent()) },
+                            onSignIn          = onGoogleSignIn,
                             onSignOut         = { backendVm.signOut() },
                             isDark            = isDark,
                             onToggleTheme     = vm::toggleTheme,

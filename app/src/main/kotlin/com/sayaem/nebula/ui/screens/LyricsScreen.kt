@@ -111,7 +111,7 @@ fun LyricsSheet(
             if (lyrics.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Filled.LyricsOutlined, null, tint = TextTertiaryDark,
+                        Icon(Icons.Filled.MusicOff, null, tint = TextTertiaryDark,
                             modifier = Modifier.size(48.dp))
                         Spacer(Modifier.height(14.dp))
                         Text("No lyrics found", style = MaterialTheme.typography.headlineSmall,

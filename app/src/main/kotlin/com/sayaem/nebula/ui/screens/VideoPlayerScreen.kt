@@ -1,6 +1,7 @@
 package com.sayaem.nebula.ui.screens
 
 import androidx.compose.ui.*
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.*
 import androidx.compose.ui.geometry.Offset
 import android.app.Activity
@@ -61,17 +62,6 @@ fun VideoPlayerScreen(
                 Text("Player loading...", color = Color.White.copy(0.7f))
             }
         }
-        // Pinch-to-zoom
-    val transformState = rememberTransformableState { zoomChange, offsetChange, _ ->
-        videoScale = (videoScale * zoomChange).coerceIn(1f, 4f)
-        if (videoScale > 1f) {
-            videoOffsetX += offsetChange.x
-            videoOffsetY += offsetChange.y
-        } else {
-            videoOffsetX = 0f; videoOffsetY = 0f
-        }
-    }
-
     BackHandler { onBack() }
         return
     }
@@ -88,6 +78,17 @@ fun VideoPlayerScreen(
     var showSeekLabel   by remember { mutableStateOf(false) }
     var isLocked        by remember { mutableStateOf(false) }
     var showSubtitles   by remember { mutableStateOf(true) }
+
+    // Pinch-to-zoom transformable state
+    val transformState = rememberTransformableState { zoomChange, offsetChange, _ ->
+        videoScale = (videoScale * zoomChange).coerceIn(1f, 4f)
+        if (videoScale > 1f) {
+            videoOffsetX += offsetChange.x
+            videoOffsetY += offsetChange.y
+        } else {
+            videoOffsetX = 0f; videoOffsetY = 0f
+        }
+    }
 
     // Detect .srt file alongside the video
     val srtPath = remember(video.filePath) {
@@ -116,6 +117,10 @@ fun VideoPlayerScreen(
     }
 
     // Real screen brightness
+    LaunchedEffect(videoSpeed) {
+        player?.setPlaybackSpeed(videoSpeed)
+    }
+
     LaunchedEffect(brightness) {
         activity?.window?.attributes = activity?.window?.attributes?.also {
             it.screenBrightness = brightness.coerceIn(0.01f, 1.0f)
@@ -189,7 +194,7 @@ fun VideoPlayerScreen(
             },
             update = { pv ->
                 pv.resizeMode = aspectModes[aspectIdx]
-                pv.setPlaybackSpeed(videoSpeed)
+                // speed is applied directly to ExoPlayer, not PlayerView
             },
             modifier = Modifier
                 .fillMaxSize()

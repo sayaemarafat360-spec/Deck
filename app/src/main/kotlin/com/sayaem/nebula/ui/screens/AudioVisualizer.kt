@@ -35,7 +35,7 @@ fun AudioVisualizer(
         var visualizer: Visualizer? = null
         try {
             visualizer = Visualizer(audioSessionId).apply {
-                captureSize = Visualizer.getCaptureSizeRange()[1]
+                captureSize = Visualizer.getCaptureSizeRange()[1]  // max size
                 setDataCaptureListener(
                     object : Visualizer.OnDataCaptureListener {
                         override fun onWaveFormDataCapture(v: Visualizer, waveform: ByteArray, samplingRate: Int) {}
@@ -60,7 +60,7 @@ fun AudioVisualizer(
                             magnitudes.value = bars
                         }
                     },
-                    Visualizer.MAX_CAPTURE_RATE / 2,
+                    16000  // 16kHz capture rate — good balance of CPU and responsiveness,
                     false,
                     true   // FFT
                 )
