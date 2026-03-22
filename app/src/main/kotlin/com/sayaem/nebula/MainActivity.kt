@@ -73,7 +73,7 @@ fun DeckRoot(vm: MainViewModel, onExitApp: () -> Unit) {
     val totalMin     by vm.totalMinutes.collectAsStateWithLifecycle()
     val listeningStats by vm.listeningStats.collectAsStateWithLifecycle()
 
-    var showOnboarding by remember { mutableStateOf(!vm.store.isOnboardingDone()) }
+    var showOnboarding by remember { mutableStateOf<Boolean>(!vm.store.isOnboardingDone()) }
     var screenStack    by remember { mutableStateOf(listOf<Screen>(Screen.Home)) }
     val currentScreen   = screenStack.last()
     var showNowPlaying by remember { mutableStateOf(false) }

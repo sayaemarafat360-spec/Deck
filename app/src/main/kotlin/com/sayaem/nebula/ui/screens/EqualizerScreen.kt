@@ -1,5 +1,7 @@
 package com.sayaem.nebula.ui.screens
 
+import androidx.compose.ui.*
+import androidx.compose.ui.draw.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
@@ -8,13 +10,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.*
-import androidx.compose.ui.draw.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
 import com.sayaem.nebula.MainViewModel
 import com.sayaem.nebula.ui.theme.*
+
 
 data class EqState(
     val preset: String = "Flat",
@@ -80,7 +81,7 @@ fun EqualizerScreen(
         Spacer(Modifier.height(20.dp))
 
         // EQ bands — vertical sliders
-        Box(modifier = Modifier.weight(1f).graphicsLayer(alpha = if (eqState.enabled) 1f else 0.4f)) {
+        Box(modifier = Modifier.weight(1f).alpha(if (eqState.enabled) 1f else 0.4f)) {
             Row(modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly) {
                 eqState.bands.forEachIndexed { i, value ->
@@ -94,7 +95,7 @@ fun EqualizerScreen(
                             value = value, onValueChange = { onBandChanged(i, it) },
                             valueRange = -12f..12f, steps = 23,
                             modifier = Modifier.fillMaxHeight(0.75f)
-                                .graphicsLayer { rotationZ = 270f },
+                                .rotate(270f),
                             colors = SliderDefaults.colors(activeTrackColor = barColor,
                                 thumbColor = Color.White, inactiveTrackColor = DarkBorder)
                         )

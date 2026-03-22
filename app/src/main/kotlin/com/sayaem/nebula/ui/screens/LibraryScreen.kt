@@ -1,5 +1,7 @@
 package com.sayaem.nebula.ui.screens
 
+import androidx.compose.ui.*
+import androidx.compose.ui.draw.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
@@ -9,7 +11,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -18,6 +19,8 @@ import com.sayaem.nebula.data.models.Playlist
 import com.sayaem.nebula.data.models.Song
 import com.sayaem.nebula.ui.components.SongTile
 import com.sayaem.nebula.ui.theme.*
+
+
 
 @Composable
 fun LibraryScreen(
@@ -277,8 +280,7 @@ private fun PlaylistsTab(
                             IconButton(onClick = { showMenu = true }) {
                                 Icon(Icons.Filled.MoreVert, null, tint = TextTertiaryDark)
                             }
-                            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false },
-                                containerColor = DarkCard) {
+                            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                                 DropdownMenuItem(text = { Text("Add songs", color = TextPrimaryDark) },
                                     onClick = { addingSongTo = pl.id; showMenu = false },
                                     leadingIcon = { Icon(Icons.Filled.Add, null, tint = NebulaViolet) })
@@ -328,7 +330,7 @@ private fun PlaylistsTab(
     if (showCreateDialog) {
         AlertDialog(
             onDismissRequest = { showCreateDialog = false; newPlaylistName = "" },
-            containerColor = DarkCard,
+            tonalElevation = 0.dp,
             title = { Text("New Playlist", color = TextPrimaryDark, fontWeight = FontWeight.Bold) },
             text = {
                 OutlinedTextField(value = newPlaylistName, onValueChange = { newPlaylistName = it },
@@ -356,7 +358,7 @@ private fun PlaylistsTab(
     renamingId?.let { rid ->
         AlertDialog(
             onDismissRequest = { renamingId = null },
-            containerColor = DarkCard,
+            tonalElevation = 0.dp,
             title = { Text("Rename Playlist", color = TextPrimaryDark, fontWeight = FontWeight.Bold) },
             text = {
                 OutlinedTextField(value = renameText, onValueChange = { renameText = it }, singleLine = true,
@@ -380,7 +382,7 @@ private fun PlaylistsTab(
     addingSongTo?.let { pid ->
         AlertDialog(
             onDismissRequest = { addingSongTo = null },
-            containerColor = DarkCard,
+            tonalElevation = 0.dp,
             title = { Text("Add Songs", color = TextPrimaryDark, fontWeight = FontWeight.Bold) },
             text = {
                 val pl = playlists.find { it.id == pid }

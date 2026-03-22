@@ -109,6 +109,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                         if (playback.value.currentSong?.id == curId) player.next()
                     }
                     initEqualizer()
+                    songs.value.find { it.id == curId }?.let { song ->
+                        try { notifManager.showNowPlaying(song, true) } catch (_: Exception) {}
+                    }
                 }
                 prevId = curId; prevPos = state.position; prevDur = state.duration
             }
@@ -236,11 +239,19 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         } catch (_: Exception) {}
     }
 
+
+    // ─── Settings wiring ──────────────────────────────────────────────
+    fun setGapless(enabled: Boolean)        { store.setGapless(enabled) }
+    fun setSmartSkipEnabled(enabled: Boolean){ store.setSmartSkip(enabled) }
+    fun setCrossfade(seconds: Float)         { store.setCrossfade(seconds) }
     override fun onCleared() {
         super.onCleared()
         equalizer?.release(); bassBoost?.release()
         sleepTimerJob?.cancel(); player.release()
     }
+
+    // ─── Settings wiring ──────────────────────────────────────────────
+
 
     companion object {
         val EQ_PRESETS = mapOf(
@@ -256,20 +267,4 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             "Treble" to listOf(0f,0f,0f,0f,0f,2f,4f,5f,6f,6f),
         )
     }
-}
-
-// Extension to expose wiring for settings toggles
-fun setGapless(enabled: Boolean) {
-    // ExoPlayer handles gapless automatically when tracks share the same format
-    // Setting handled via MediaMetadata silence trimming
-    store.prefs.edit().putBoolean("gapless", enabled).apply()
-}
-
-fun setSmartSkipEnabled(enabled: Boolean) {
-    store.prefs.edit().putBoolean("smart_skip", enabled).apply()
-}
-
-fun setCrossfade(seconds: Float) {
-    store.prefs.edit().putFloat("crossfade", seconds).apply()
-    // Crossfade implemented at queue boundary via volume ducking in PlayerController
 }

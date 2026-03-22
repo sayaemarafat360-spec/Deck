@@ -187,8 +187,17 @@ class LocalDataStore(context: Context) {
             if (pl.id == playlistId) pl.copy(songIds = newOrder) else pl
         })
     }
-}
 
-    // ─── Onboarding ───────────────────────────────────────────────────
+
+    // ─── Settings persistence ─────────────────────────────────────────
+    fun setGapless(enabled: Boolean) = prefs.edit().putBoolean("gapless", enabled).apply()
+    fun setSmartSkip(enabled: Boolean) = prefs.edit().putBoolean("smart_skip", enabled).apply()
+    fun setCrossfade(seconds: Float) = prefs.edit().putFloat("crossfade", seconds).apply()
+    fun getGapless(): Boolean = prefs.getBoolean("gapless", true)
+    fun getSmartSkip(): Boolean = prefs.getBoolean("smart_skip", false)
+    fun getCrossfade(): Float = prefs.getFloat("crossfade", 0f)
+
+    // ─── Onboarding ─────────────────────────────────────────────────
     fun isOnboardingDone(): Boolean = prefs.getBoolean("onboarding_done", false)
-    fun markOnboardingDone() = prefs.edit().putBoolean("onboarding_done", true).apply()
+    fun markOnboardingDone() { prefs.edit().putBoolean("onboarding_done", true).apply() }
+}
