@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
+import androidx.compose.ui.draw.*
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.platform.LocalContext
@@ -108,7 +109,7 @@ fun VideoPlayerScreen(
                     // CRITICAL: Use TextureView instead of SurfaceView
                     // SurfaceView punches through Compose layers and can't be transformed
                     // TextureView renders into the Compose layer correctly
-                    setSurfaceType(PlayerView.SURFACE_TYPE_TEXTURE_VIEW)
+                    setSurfaceType(2) // SURFACE_TYPE_TEXTURE_VIEW
                 }
             },
             update = { pv ->
